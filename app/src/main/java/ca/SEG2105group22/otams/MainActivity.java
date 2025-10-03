@@ -1,24 +1,34 @@
 package ca.SEG2105group22.otams;
 
 import android.os.Bundle;
+import android.util.Log;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class MainActivity extends AppCompatActivity {
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("test")
+                .add(new TestMessage("Hello Firebase!"))
+                .addOnSuccessListener(ref ->
+                        Log.d("FIREBASE", "Document added with ID: " + ref.getId()))
+                .addOnFailureListener(e ->
+                        Log.w("FIREBASE", "Error adding document", e));
     }
+}
+
+
+class TestMessage {
+    public String text;
+
+    public TestMessage() { }
+    public TestMessage(String text) { this.text = text; }
 }
