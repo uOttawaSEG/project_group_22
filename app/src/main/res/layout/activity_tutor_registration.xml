@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tutorDetailsScroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/tutorDetailsColumn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp">
+
+        <TextView
+            android:id="@+id/tvTutorHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tutor details"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:paddingBottom="6dp"/>
+
+        <!-- Highest degree -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Highest degree"
+            android:layout_marginTop="10dp"/>
+
+        <Spinner
+            android:id="@+id/spHighestDegree"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <!-- Courses offered (one or more) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Courses offered (one or more)"
+            android:layout_marginTop="14dp"/>
+
+        <!-- Enter multiple courses separated by commas -->
+        <MultiAutoCompleteTextView
+            android:id="@+id/etCourses"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g., SEG2105, ITI1100"
+            android:inputType="text"
+            android:minLines="1"
+            android:maxLines="4"
+            android:scrollbars="vertical" />
+
+        <Button
+            android:id="@+id/btnFinishTutor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Finish sign up" />
+
+    </LinearLayout>
+</ScrollView>
