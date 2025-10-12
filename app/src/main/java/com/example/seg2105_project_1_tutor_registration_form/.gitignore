@@ -1,0 +1,18 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.iml
+.idea/workspace.xml
+.idea/caches/
+.idea/libraries/
+.externalNativeBuild/
+.cxx/
+captures/
+# Keystore / secrets
+*.jks
+*.keystore
+# Release outputs
+app/release/
+# Logs
+*.log
