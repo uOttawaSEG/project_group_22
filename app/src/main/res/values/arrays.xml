@@ -1,0 +1,11 @@
+<resources>
+    <string-array name="degree_options">
+        <item>Select degree…</item>
+        <item>Undergraduate (in progress)</item>
+        <item>Bachelor’s</item>
+        <item>College Diploma / Certificate</item>
+        <item>Master’s</item>
+        <item>PhD</item>
+        <item>Other</item>
+    </string-array>
+</resources>

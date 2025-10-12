@@ -12,12 +12,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SEG2105_Project_1_Tutor_Registration_Form">
 
-        <!-- Registration screen (no launcher filter) -->
+        <!-- Registration screen -->
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
 
-        <!-- App entry point: the ONLY activity with MAIN/LAUNCHER -->
+        <!-- Welcome screen (ADD THIS) -->
+        <activity
+            android:name=".WelcomeActivity"
+            android:exported="false" />
+
+        <!-- App entry point: the ONLY activity with MAIN/LAUNCHER must be exported -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -26,7 +31,5 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
     </application>
-
 </manifest>
