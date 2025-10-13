@@ -10,6 +10,7 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+<<<<<<< HEAD
 
     // ✅ Declare plugin + version here (Option A)
     plugins {
@@ -17,6 +18,9 @@ pluginManagement {
     }
 }
 
+=======
+}
+>>>>>>> origin/main
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -25,5 +29,9 @@ dependencyResolutionManagement {
     }
 }
 
+<<<<<<< HEAD
 rootProject.name = "SEG2105_Project_1_Tutor_Registration_Form"
+=======
+rootProject.name = "OTAMS_GROUP22"
+>>>>>>> origin/main
 include(":app")

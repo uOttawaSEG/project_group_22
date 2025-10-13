@@ -23,6 +23,7 @@
           "other_platform_oauth_client": []
         }
       }
+<<<<<<< HEAD
     },
     {
       "client_info": {
@@ -42,6 +43,8 @@
           "other_platform_oauth_client": []
         }
       }
+=======
+>>>>>>> origin/main
     }
   ],
   "configuration_version": "1"
