@@ -1,35 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/mentora_app_logo"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SEG2105_Project_1_Tutor_Registration_Form">
 
-        <!-- Registration screen -->
+        <!-- 1) Launcher: Splash first -->
         <activity
-            android:name=".RegisterActivity"
-            android:exported="false" />
-
-        <!-- Welcome screen (ADD THIS) -->
-        <activity
-            android:name=".WelcomeActivity"
-            android:exported="false" />
-
-        <!-- App entry point: the ONLY activity with MAIN/LAUNCHER must be exported -->
-        <activity
-            android:name=".MainActivity"
+            android:name=".auth.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 2) Main login screen (opened from Splash) -->
+        <activity
+            android:name=".auth.MainActivity"
+            android:exported="false" />
+
+        <!-- 3) Tutor registration screen (opened from Main when role == Tutor + Register) -->
+        <activity
+            android:name=".auth.TutorRegisterActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".auth.StudentRegistrationActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity android:name=".auth.AdminRegistrationActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 4) Post-auth landing -->
+        <activity
+            android:name=".WelcomeActivity"
+            android:exported="false" />
+
     </application>
 </manifest>

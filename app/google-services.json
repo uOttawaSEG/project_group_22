@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "866336437001",
+    "project_id": "otams-prod-db",
+    "storage_bucket": "otams-prod-db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:866336437001:android:a8d6e6ae5097855127d9d8",
+        "android_client_info": {
+          "package_name": "ca.SEG2105group22.otams"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKQnq0iyQ_Cif3L5ea7hHlMugtkB-csiY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:866336437001:android:531f6524fdea9ba127d9d8",
+        "android_client_info": {
+          "package_name": "com.example.seg2105_project_1_tutor_registration_form"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKQnq0iyQ_Cif3L5ea7hHlMugtkB-csiY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

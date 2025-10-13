@@ -1,18 +1,15 @@
 package com.example.seg2105_project_1_tutor_registration_form;
 
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.List;
-
 public class WelcomeActivity extends AppCompatActivity {
-    private TextView tvWelcome, tvUserInfo;
+
+    private TextView tvUserInfo;
     private Button btnLogout;
 
     @Override
@@ -20,49 +17,38 @@ public class WelcomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
 
-        tvWelcome = findViewById(R.id.tvWelcome);
         tvUserInfo = findViewById(R.id.tvUserInfo);
         btnLogout  = findViewById(R.id.btnLogout);
 
-        // Retrieve the Tutor object safely (API 33+ overload)
-        Tutor tutor;
-        if (Build.VERSION.SDK_INT >= 33) {
-            tutor = getIntent().getSerializableExtra("tutor", Tutor.class);
-        } else {
-            tutor = (Tutor) getIntent().getSerializableExtra("tutor");
+        // Read what we know about the user
+        Intent i = getIntent();
+        String role   = n(i.getStringExtra("role"));
+        String email  = n(i.getStringExtra("email"));
+        String name   = n(i.getStringExtra("name"));     // optional
+        String phone  = n(i.getStringExtra("phone"));    // optional
+        String degree = n(i.getStringExtra("degreeCsv")); // optional CSV
+        String courses= n(i.getStringExtra("coursesCsv")); // optional CSV
+
+        StringBuilder sb = new StringBuilder();
+        if (!name.isEmpty())   sb.append("Name: ").append(name).append("\n");
+        if (!role.isEmpty())   sb.append("Role: ").append(role).append("\n");
+        if (!email.isEmpty())  sb.append("Email: ").append(email).append("\n");
+        if (!phone.isEmpty())  sb.append("Phone: ").append(phone).append("\n");
+        if (!degree.isEmpty()) sb.append("Degree(s): ").append(degree).append("\n");
+        if (!courses.isEmpty())sb.append("Courses: ").append(courses).append("\n");
+
+        if (sb.length()==0) {
+            sb.append("You're signed in. We couldn't find more details to show.");
         }
-
-        if (tutor != null) {
-            tvWelcome.setText("Welcome! You are logged in as Tutor");
-
-            String first  = nz(tutor.getFirstName());
-            String last   = nz(tutor.getLastName());
-            String email  = nz(tutor.getEmail());
-            String phone  = nz(tutor.getPhone());
-            String degree = nz(tutor.getDegree());
-
-            List<String> list = tutor.getCourses();
-            String courses = (list == null || list.isEmpty()) ? "—" : TextUtils.join(", ", list);
-
-            String info =
-                    "Name: " + first + " " + last + "\n" +
-                            "Email: " + email + "\n" +
-                            "Phone: " + phone + "\n" +
-                            "Highest Degree: " + degree + "\n" +
-                            "Courses Offered: " + courses;
-
-            tvUserInfo.setText(info);
-        } else {
-            // Fallback if nothing was passed (prevents crash)
-            tvWelcome.setText("Welcome!");
-            tvUserInfo.setText("We couldn’t load your tutor info.");
-        }
+        tvUserInfo.setText(sb.toString().trim());
 
         btnLogout.setOnClickListener(v -> {
-            startActivity(new Intent(this, MainActivity.class));
+            // simple logout: go back to Main
+            startActivity(new Intent(this,
+                    com.example.seg2105_project_1_tutor_registration_form.auth.MainActivity.class));
             finish();
         });
     }
 
-    private static String nz(String s) { return s == null ? "—" : s; }
+    private String n(String s) { return s == null ? "" : s.trim(); }
 }

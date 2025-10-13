@@ -1,11 +1,43 @@
+<!-- res/values/arrays.xml -->
 <resources>
-    <string-array name="degree_options">
-        <item>Select degree…</item>
-        <item>Undergraduate (in progress)</item>
+
+    <string-array name="degrees_array">
         <item>Bachelor’s</item>
-        <item>College Diploma / Certificate</item>
         <item>Master’s</item>
         <item>PhD</item>
-        <item>Other</item>
+        <item>Diploma</item>
+        <item>Certificate</item>
     </string-array>
+
+    <string-array name="courses_array">
+        <item>Mathematics</item>
+        <item>Science</item>
+        <item>English</item>
+        <item>History</item>
+        <item>Computer Science</item>
+        <item>Economics</item>
+        <item>Physics</item>
+        <item>Chemistry</item>
+    </string-array>
+
+    <string-array name="study_years">
+        <item>1st year</item>
+        <item>2nd year</item>
+        <item>3rd year</item>
+        <item>4th year</item>
+        <item>5th+</item>
+        <item>Graduate</item>
+    </string-array>
+
+    <string-array name="courses_interested">
+        <item>SEG 2105</item>
+        <item>CEG 2136</item>
+        <item>CSI 2110</item>
+        <item>MAT 1348</item>
+        <item>MAT 2377</item>
+        <item>CSI 2101</item>
+        <item>ELG 2138</item>
+        <item>ITI 1100</item>
+    </string-array>
+
 </resources>

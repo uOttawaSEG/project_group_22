@@ -1,17 +1,18 @@
 plugins {
     alias(libs.plugins.android.application)
+
+    // Option A: just apply it here (version is declared in settings.gradle.kts)
+    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.example.seg2105_project_1_tutor_registration_form"
-
-    // Needed because androidx.activity:activity:1.11.0 requires API 36+
     compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.seg2105_project_1_tutor_registration_form"
         minSdk = 24
-        targetSdk = 36   // OK to keep 35, but 36 is fine too
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -28,7 +29,7 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11   // or 17 if your AGP needs it
+        sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
 
@@ -38,12 +39,19 @@ android {
 }
 
 dependencies {
+    // existing deps
     implementation(libs.appcompat)
     implementation(libs.material)
-    implementation(libs.activity)          // this can stay at 1.11.0 once compileSdk=36
+    implementation(libs.activity)
     implementation(libs.constraintlayout)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    // Firebase (use BoM to align versions)
+    implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 }
+
