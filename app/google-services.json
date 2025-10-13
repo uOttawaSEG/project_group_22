@@ -23,6 +23,28 @@
           "other_platform_oauth_client": []
         }
       }
+<<<<<<< HEAD
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:866336437001:android:531f6524fdea9ba127d9d8",
+        "android_client_info": {
+          "package_name": "com.example.seg2105_project_1_tutor_registration_form"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKQnq0iyQ_Cif3L5ea7hHlMugtkB-csiY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+=======
+>>>>>>> origin/main
     }
   ],
   "configuration_version": "1"
