@@ -1,17 +1,11 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <!-- Base application theme. -->
-<<<<<<< HEAD
-    <style name="Base.Theme.SEG2105_Project_1_Tutor_Registration_Form" parent="Theme.Material3.DayNight.NoActionBar">
-=======
-    <style name="Base.Theme.OTAMS_GROUP22" parent="Theme.Material3.DayNight.NoActionBar">
->>>>>>> origin/main
-        <!-- Customize your light theme here. -->
+    <style name="Base.Theme.SEG2105_Project_1_Tutor_Registration_Form"
+        parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your theme here -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
-<<<<<<< HEAD
-    <style name="Theme.SEG2105_Project_1_Tutor_Registration_Form" parent="Base.Theme.SEG2105_Project_1_Tutor_Registration_Form" />
-=======
-    <style name="Theme.OTAMS_GROUP22" parent="Base.Theme.OTAMS_GROUP22" />
->>>>>>> origin/main
+    <style name="Theme.SEG2105_Project_1_Tutor_Registration_Form"
+        parent="Base.Theme.SEG2105_Project_1_Tutor_Registration_Form" />
 </resources>
