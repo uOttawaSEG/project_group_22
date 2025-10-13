@@ -10,13 +10,14 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.seg2105_project_1_tutor_registration_form.DatabaseHelper;
 import com.example.seg2105_project_1_tutor_registration_form.R;
-import com.example.seg2105_project_1_tutor_registration_form.model.Tutor;
+import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TutorRegisterActivity extends AppCompatActivity {
 
@@ -29,14 +30,14 @@ public class TutorRegisterActivity extends AppCompatActivity {
     // submit
     private Button btnRegister;
 
-    private DatabaseHelper databaseHelper;
+    // Firebase
+    private final FirebaseRepository repo = new FirebaseRepository();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tutor_register); // <= your XML file name
+        setContentView(R.layout.activity_tutor_register);
 
-        databaseHelper = new DatabaseHelper(this);
         bindViews();
         setupDropdowns();
 
@@ -57,27 +58,13 @@ public class TutorRegisterActivity extends AppCompatActivity {
     }
 
     private void setupDropdowns() {
-        // You can move these to res/values/arrays.xml later if you prefer
         String[] degreeOptions = new String[]{
-                "High School Diploma",
-                "Associate’s",
-                "Bachelor of Arts",
-                "Bachelor of Science",
-                "Master’s",
-                "PhD / Doctorate",
-                "Post-doc"
+                "High School Diploma","Associate’s","Bachelor of Arts","Bachelor of Science",
+                "Master’s","PhD / Doctorate","Post-doc"
         };
-
         String[] courseOptions = new String[]{
-                "Mathematics",
-                "Science",
-                "English",
-                "History",
-                "Computer Science",
-                "Physics",
-                "Chemistry",
-                "Biology",
-                "Economics"
+                "Mathematics","Science","English","History","Computer Science",
+                "Physics","Chemistry","Biology","Economics"
         };
 
         ArrayAdapter<String> degreeAdapter = new ArrayAdapter<>(
@@ -100,59 +87,52 @@ public class TutorRegisterActivity extends AppCompatActivity {
         String pass  = textOf(etPassword);
         String phone = textOf(etPhone);
 
-        // Comma-separated strings user selected/type
-        String selectedDegreesCsv = actText(actDegree);   // keep as CSV in your DB
+        String selectedDegreesCsv = actText(actDegree);
         String selectedCoursesCsv = actText(actCourses);
 
         if (first.isEmpty() || last.isEmpty() || email.isEmpty() || pass.isEmpty()) {
-            toast("Please fill all required fields.");
-            return;
+            toast("Please fill all required fields."); return;
         }
-        if (selectedDegreesCsv.isEmpty()) {
-            toast("Please select at least one degree.");
-            return;
-        }
-        if (selectedCoursesCsv.isEmpty()) {
-            toast("Please select at least one course.");
-            return;
-        }
-        if (databaseHelper.emailExists(email)) {
-            toast("Email already registered.");
-            return;
-        }
+        if (selectedDegreesCsv.isEmpty()) { toast("Please select at least one degree."); return; }
+        if (selectedCoursesCsv.isEmpty()) { toast("Please select at least one course."); return; }
+        if (pass.length() < 6) { toast("Password must be at least 6 characters."); return; }
 
-        // Convert courses CSV -> List<String>
-        List<String> courses = csvToList(selectedCoursesCsv);
+        // 1) Create Firebase Auth account
+        repo.signUp(email, pass)
+                .addOnSuccessListener(authResult -> {
+                    String uid = repo.uid();
 
-        // Build Tutor model
-        Tutor tutor = new Tutor(
-                null,            // id (DB autoincrement)
-                first, last,
-                email, pass,
-                phone,
-                selectedDegreesCsv, // store degrees as CSV in COLUMN_DEGREE
-                courses
-        );
+                    // 2) Save profile to Firestore
+                    Map<String, Object> profile = new HashMap<>();
+                    profile.put("role", "tutor");
+                    profile.put("email", email);
+                    profile.put("firstName", first);
+                    profile.put("lastName", last);
+                    profile.put("phone", phone);
+                    profile.put("degreesCsv", selectedDegreesCsv);
+                    profile.put("coursesCsv", selectedCoursesCsv);
 
-        boolean ok = databaseHelper.addTutor(tutor);
-        if (ok) {
-            toast("Registration successful!");
+                    repo.saveUserProfile(uid, profile)
+                            .addOnSuccessListener(x -> {
+                                toast("Registration successful!");
 
-            Intent i = new Intent(this,
-                    com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class);
-            i.putExtra("role", "Tutor");
-            i.putExtra("email", email);
-            i.putExtra("name", first + " " + last);
-            i.putExtra("phone", phone);
-            i.putExtra("degreeCsv", selectedDegreesCsv);
-            i.putExtra("coursesCsv", selectedCoursesCsv);
-            startActivity(i);
-
-            finish();
-        } else {
-            toast("Registration failed. Please try again.");
-        }
-
+                                // 3) Go to Welcome screen with details
+                                Intent i = new Intent(this,
+                                        com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class);
+                                i.putExtra("role", "Tutor");
+                                i.putExtra("email", email);
+                                i.putExtra("name", first + " " + last);
+                                i.putExtra("phone", phone);
+                                i.putExtra("degreeCsv", selectedDegreesCsv);
+                                i.putExtra("coursesCsv", selectedCoursesCsv);
+                                startActivity(i);
+                                finish();
+                            })
+                            .addOnFailureListener(e ->
+                                    toast("Failed to save profile: " + e.getMessage()));
+                })
+                .addOnFailureListener(e ->
+                        toast("Sign up failed: " + e.getMessage()));
     }
 
     private String textOf(TextInputEditText e) {
@@ -174,7 +154,5 @@ public class TutorRegisterActivity extends AppCompatActivity {
         return out;
     }
 
-
-
-    private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_SHORT).show(); }
+    private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_LONG).show(); }
 }

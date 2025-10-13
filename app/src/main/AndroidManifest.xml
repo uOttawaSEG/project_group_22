@@ -1,17 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<<<<<<< HEAD
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-=======
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Needed for Firebase/Auth/Firestore network calls -->
     <uses-permission android:name="android.permission.INTERNET" />
->>>>>>> origin/main
 
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-<<<<<<< HEAD
         android:icon="@drawable/mentora_app_logo"
         android:label="@string/app_name"
         android:supportsRtl="true"
@@ -32,18 +29,17 @@
             android:name=".auth.MainActivity"
             android:exported="false" />
 
-        <!-- 3) Tutor registration screen (opened from Main when role == Tutor + Register) -->
+        <!-- 3) Registration screens -->
         <activity
             android:name=".auth.TutorRegisterActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-
         <activity
             android:name=".auth.StudentRegistrationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-
-        <activity android:name=".auth.AdminRegistrationActivity"
+        <activity
+            android:name=".auth.AdminRegistrationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
@@ -51,25 +47,6 @@
         <activity
             android:name=".WelcomeActivity"
             android:exported="false" />
-
-    </application>
-</manifest>
-=======
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.OTAMS_GROUP22">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
     </application>
 
 </manifest>
->>>>>>> origin/main
