@@ -39,6 +39,21 @@ After authentication, users see a **Welcome screen** showing their **role** and 
 - **Field validation** with clear error messages
 - **Welcome screen** displays user role and profile details
 - Optional bonus: **Firebase Firestore** used to store user profiles
+## 🔐 Admin (Demo)
+
+Use these **demo credentials** to create and sign in as the Administrator:
+
+- **Invite code:** `SEG2105-ADMIN-ONLY`
+- **Admin email:** `admin@otams22.com`
+- **Admin password:** `AdminPass_Group_22`
+
+**How to use:**
+1. Open **Admin Registration** in the app.
+2. Enter the email and password above.
+3. Enter the invite code **SEG2105-ADMIN-ONLY**.
+4. Submit to create the admin, then log in with the same email/password.
+
+> ⚠️ For assignment demo only. In a real app, the invite code and admin bootstrap flow would be secured (remote config/Cloud Functions, server checks, etc.).
 
 ---
 
