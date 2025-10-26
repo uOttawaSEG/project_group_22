@@ -1,125 +1,88 @@
 package com.example.seg2105_project_1_tutor_registration_form.model;
 
-import androidx.annotation.Nullable;
-import com.example.seg2105_project_1_tutor_registration_form.data.RequestStatus;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * A registration request that an Admin reviews.
+ * One document per user under collection "registrationRequests".
+ */
 public class RegRequest {
+    // Firestore doc id (not stored inside the doc; we set it after reads)
+    public String id;
 
-    private String id;
-    private String userUid;
+    // Who/what
+    public String userId;         // Firebase Auth UID
+    public String role;           // "Student" | "Tutor" | "Administrator" (string to match what you save now)
+    public String firstName;
+    public String lastName;
+    public String email;
+    public String phone;          // optional
 
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String phone;
+    // Status + audit trail
+    public String status;         // "PENDING" | "APPROVED" | "REJECTED"
+    public long   submittedAt;    // epoch millis
+    public String decidedBy;      // admin UID (nullable)
+    public Long   decidedAt;      // epoch millis (nullable)
+    public String reason;         // rejection reason (nullable)
 
-    // Stored in Firestore as strings
-    private String role;    // "STUDENT"|"TUTOR"|...
-    private String status;  // "PENDING"|"APPROVED"|"REJECTED"
-
-    private String coursesWantedSummary;
-    private String coursesOfferedSummary;
-
-    private String decidedBy;
-    private Long decidedAt;
-    private Long submittedAt;
-    private String reason;
-
+    // Required by Firestore
     public RegRequest() {}
 
-    public RegRequest(
-            String id,
-            String userUid,
-            String firstName,
-            String lastName,
-            String email,
-            String phone,
-            Role role,
-            String coursesWantedSummary,
-            String coursesOfferedSummary,
-            RequestStatus status,
-            String decidedBy,
-            Long decidedAt,
-            Long submittedAt,
-            String reason
-    ) {
-        this.id = id;
-        this.userUid = userUid;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phone = phone;
-        // store as strings for Firestore
-        this.role = role == null ? null : role.name();
-        this.status = status == null ? null : status.name();
-        this.coursesWantedSummary = coursesWantedSummary;
-        this.coursesOfferedSummary = coursesOfferedSummary;
-        this.decidedBy = decidedBy;
-        this.decidedAt = decidedAt;
-        this.submittedAt = submittedAt;
-        this.reason = reason;
+    public static RegRequest pending(String userId,
+                                     String role,
+                                     String firstName,
+                                     String lastName,
+                                     String email,
+                                     String phone,
+                                     long nowMillis) {
+        RegRequest r = new RegRequest();
+        r.userId = userId;
+        r.role = role;
+        r.firstName = firstName;
+        r.lastName  = lastName;
+        r.email     = email;
+        r.phone     = phone;
+        r.status    = RequestStatus.PENDING.name();
+        r.submittedAt = nowMillis;
+        return r;
     }
 
-    // --- Firestore-mapped getters/setters (strings) ---
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getUserUid() { return userUid; }
-    public void setUserUid(String userUid) { this.userUid = userUid; }
-
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
-
-    public String getRole() { return role; }          // <- string for Firestore
-    public void setRole(String role) { this.role = role; }
-
-    public String getStatus() { return status; }      // <- string for Firestore
-    public void setStatus(String status) { this.status = status; }
-
-    public String getCoursesWantedSummary() { return coursesWantedSummary; }
-    public void setCoursesWantedSummary(String s) { this.coursesWantedSummary = s; }
-
-    public String getCoursesOfferedSummary() { return coursesOfferedSummary; }
-    public void setCoursesOfferedSummary(String s) { this.coursesOfferedSummary = s; }
-
-    public String getDecidedBy() { return decidedBy; }
-    public void setDecidedBy(String decidedBy) { this.decidedBy = decidedBy; }
-
-    public Long getDecidedAt() { return decidedAt; }
-    public void setDecidedAt(Long decidedAt) { this.decidedAt = decidedAt; }
-
-    public Long getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(Long submittedAt) { this.submittedAt = submittedAt; }
-
-    public @Nullable String getReason() { return reason; }
-    public void setReason(String reason) { this.reason = reason; }
-
-    // --- Helpers for your UI (enum views) — NOT used by Firestore mapping ---
-    public @Nullable Role getRoleEnum() {
-        if (role == null) return null;
-        try { return Role.valueOf(role.trim().toUpperCase()); }
-        catch (IllegalArgumentException e) { return null; }
+    public Map<String, Object> toMap() {
+        Map<String, Object> m = new HashMap<>();
+        m.put("userId", userId);
+        m.put("role", role);
+        m.put("firstName", firstName);
+        m.put("lastName", lastName);
+        m.put("email", email);
+        m.put("phone", phone);
+        m.put("status", status);
+        m.put("submittedAt", submittedAt);
+        m.put("decidedBy", decidedBy);
+        m.put("decidedAt", decidedAt);
+        m.put("reason", reason);
+        return m;
     }
 
-    public @Nullable RequestStatus getStatusEnum() {
-        if (status == null) return null;
-        try { return RequestStatus.valueOf(status.trim().toUpperCase()); }
-        catch (IllegalArgumentException e) { return null; }
-    }
-
-    // Convenience
-    public String fullName() {
-        String fn = firstName == null ? "" : firstName.trim();
-        String ln = lastName  == null ? "" : lastName.trim();
-        return (fn + " " + ln).trim();
+    @SuppressWarnings("unchecked")
+    public static RegRequest fromMap(Map<String, Object> m, String id) {
+        if (m == null) return null;
+        RegRequest r = new RegRequest();
+        r.id         = id;
+        r.userId     = (String) m.get("userId");
+        r.role       = (String) m.get("role");
+        r.firstName  = (String) m.get("firstName");
+        r.lastName   = (String) m.get("lastName");
+        r.email      = (String) m.get("email");
+        r.phone      = (String) m.get("phone");
+        r.status     = (String) m.get("status");
+        Object subAt = m.get("submittedAt");
+        r.submittedAt= subAt instanceof Number ? ((Number) subAt).longValue() : 0L;
+        r.decidedBy  = (String) m.get("decidedBy");
+        Object decAt = m.get("decidedAt");
+        r.decidedAt  = (decAt instanceof Number) ? ((Number) decAt).longValue() : null;
+        r.reason     = (String) m.get("reason");
+        return r;
     }
 }

@@ -13,6 +13,9 @@ import com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity;
 import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuthException;
+import android.util.Log;
+import com.example.seg2105_project_1_tutor_registration_form.data.*;
+import com.example.seg2105_project_1_tutor_registration_form.model.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -123,5 +126,33 @@ public class AdminRegistrationActivity extends AppCompatActivity {
 
     private void toast(String s) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show();
+    }
+
+    private final RegistrationRepository adminRepo = new FirestoreRegistrationRepository();
+
+    /** Load the Pending inbox (log-only for now) */
+    private void loadPending() {
+        adminRepo.listByStatus(RequestStatus.PENDING)
+                .addOnSuccessListener(list -> {
+                    for (RegRequest r : list) {
+                        Log.d("AdminInbox", "Pending: " + r.firstName + " " + r.lastName + " (" + r.role + ") id=" + r.id);
+                    }
+                    // TODO: bind list to RecyclerView adapter once UI is ready
+                })
+                .addOnFailureListener(e -> Log.e("AdminInbox", "Failed to load pending", e));
+    }
+
+    /** Approve a request (use a real admin UID you’ll give me later) */
+    private void approveRequest(String requestId, String adminUid) {
+        adminRepo.approve(requestId, adminUid)
+                .addOnSuccessListener(v -> Log.d("AdminInbox", "Approved: " + requestId))
+                .addOnFailureListener(e -> Log.e("AdminInbox", "Approve failed", e));
+    }
+
+    /** Reject a request with a reason */
+    private void rejectRequest(String requestId, String adminUid, String reason) {
+        adminRepo.reject(requestId, adminUid, reason)
+                .addOnSuccessListener(v -> Log.d("AdminInbox", "Rejected: " + requestId))
+                .addOnFailureListener(e -> Log.e("AdminInbox", "Reject failed", e));
     }
 }
