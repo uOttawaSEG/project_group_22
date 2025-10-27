@@ -12,10 +12,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity;
-import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,8 +36,6 @@ public class StudentRegistrationActivity extends AppCompatActivity {
     private AutoCompleteTextView actStudyYear;
     private MultiAutoCompleteTextView actCourses;
     private MaterialButton btnRegister;
-
-    private final FirebaseRepository repo = new FirebaseRepository();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +69,7 @@ public class StudentRegistrationActivity extends AppCompatActivity {
         etNotes     = findViewById(R.id.etNotes);
         btnRegister = findViewById(R.id.btnRegisterStudent);
 
-        // --- Register flow ---
+        // --- Register flow (now uses AccountManager to also create registrationRequests) ---
         btnRegister.setOnClickListener(v -> {
             String first     = s(etFirst);
             String last      = s(etLast);
@@ -83,7 +82,7 @@ public class StudentRegistrationActivity extends AppCompatActivity {
             String courses   = s(actCourses); // comma-separated
             String notes     = s(etNotes);
 
-            // Minimal validation (expand as needed for your marking rubric)
+            // Minimal validation
             if (TextUtils.isEmpty(first)) { toast("First name is required"); return; }
             if (TextUtils.isEmpty(last))  { toast("Last name is required"); return; }
             if (TextUtils.isEmpty(email)) { toast("Email is required"); return; }
@@ -93,46 +92,28 @@ public class StudentRegistrationActivity extends AppCompatActivity {
 
             btnRegister.setEnabled(false);
 
-            repo.signUp(email, password).addOnSuccessListener(authRes -> {
-                String uid = repo.uid();
-                if (uid == null) {
-                    btnRegister.setEnabled(true);
-                    toast("Could not get user id after sign up.");
-                    return;
-                }
-
-                Map<String, Object> profile = new HashMap<>();
-                profile.put("role", "student");          // IMPORTANT: role saved for later
-                profile.put("email", email);
-                profile.put("firstName", first);
-                profile.put("lastName", last);
-                profile.put("phone", phone);
-                profile.put("studentId", studentId);
-                profile.put("program", program);
-                profile.put("studyYear", studyYear);
-                profile.put("coursesCsv", courses);
-                profile.put("notes", notes);
-
-                repo.saveUserProfile(uid, profile).addOnSuccessListener(x -> {
-                    // Go to Welcome screen and show who they are
-                    Intent i = new Intent(this, WelcomeActivity.class);
-                    i.putExtra("role", "student");
-                    i.putExtra("email", email);
-                    i.putExtra("name", first + " " + last);
-                    i.putExtra("phone", phone);
-                    i.putExtra("degreeCsv", program);    // optional mapping
-                    i.putExtra("coursesCsv", courses);
-                    startActivity(i);
-                    finish();
-                }).addOnFailureListener(e -> {
-                    btnRegister.setEnabled(true);
-                    toast("Failed to save profile: " + e.getMessage());
-                });
-
-            }).addOnFailureListener(e -> {
-                btnRegister.setEnabled(true);
-                toast("Sign up failed: " + e.getMessage());
-            });
+            AccountManager am = new AccountManager(this);
+            am.registerStudent(
+                    first, last, email, password,
+                    phone, studentId, program, studyYear,
+                    csvToList(courses), // convert "A, B" -> List<String>
+                    notes,
+                    (ok, message) -> runOnUiThread(() -> {
+                        btnRegister.setEnabled(true);
+                        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                        if (ok) {
+                            Intent i = new Intent(this, WelcomeActivity.class);
+                            i.putExtra("role", "STUDENT");
+                            i.putExtra("email", email);
+                            i.putExtra("name", first + " " + last);
+                            i.putExtra("phone", phone);
+                            i.putExtra("degreeCsv", program);
+                            i.putExtra("coursesCsv", courses);
+                            startActivity(i);
+                            finish();
+                        }
+                    })
+            );
         });
     }
 
@@ -140,5 +121,16 @@ public class StudentRegistrationActivity extends AppCompatActivity {
     private String s(TextInputEditText et) { return et == null || et.getText()==null ? "" : et.getText().toString().trim(); }
     private String s(AutoCompleteTextView v) { return v == null || v.getText()==null ? "" : v.getText().toString().trim(); }
     private String s(MultiAutoCompleteTextView v) { return v == null || v.getText()==null ? "" : v.getText().toString().trim(); }
+
+    private List<String> csvToList(String csv) {
+        List<String> out = new ArrayList<>();
+        if (TextUtils.isEmpty(csv)) return out;
+        for (String s : csv.split(",")) {
+            String t = s.trim();
+            if (!t.isEmpty()) out.add(t);
+        }
+        return out;
+    }
+
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_SHORT).show(); }
 }

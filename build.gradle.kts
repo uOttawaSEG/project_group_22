@@ -1,10 +1,9 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Top-level build file
+
 plugins {
     alias(libs.plugins.android.application) apply false
+    // Do NOT add repositories here
 }
 
-buildscript {
-    dependencies {
-        classpath("com.google.gms:google-services:4.4.2")
-    }
-}
+// Remove any buildscript { repositories { ... } } and allprojects { repositories { ... } }
+// The repos are defined in settings.gradle via dependencyResolutionManagement.

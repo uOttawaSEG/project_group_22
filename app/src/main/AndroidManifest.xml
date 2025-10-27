@@ -4,6 +4,8 @@
 
     <!-- Needed for Firebase/Auth/Firestore network calls -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- AndroidManifest.xml (top level, outside <application>) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application
         android:allowBackup="true"

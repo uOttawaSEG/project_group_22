@@ -2,6 +2,9 @@ package com.example.seg2105_project_1_tutor_registration_form.auth;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
+import android.util.Log;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FieldValue;
 
 import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 
@@ -48,8 +51,46 @@ public class AccountManager {
             data.put("coursesWanted", coursesWanted);
             data.put("notes", notes);
 
-            repo.saveUserProfile(uid, data).addOnCompleteListener(save ->
-                    cb.onResult(save.isSuccessful(), save.isSuccessful() ? "Student saved" : "Profile save failed"));
+            repo.saveUserProfile(uid, data).addOnCompleteListener(save -> {
+                if (!save.isSuccessful()) {
+                    cb.onResult(false, "Profile save failed");
+                    return;
+                }
+
+                // Build a summary like "SEG2105, ITI1121"
+                String coursesSummary = "";
+                if (coursesWanted != null && !coursesWanted.isEmpty()) {
+                    coursesSummary = String.join(", ", coursesWanted);
+                }
+
+                // Create /registrationRequests/{uid}
+                FirebaseFirestore db = FirebaseFirestore.getInstance();
+                Map<String, Object> req = new HashMap<>();
+                req.put("id", uid);
+                req.put("userUid", uid);
+                req.put("firstName", firstName);
+                req.put("lastName", lastName);
+                req.put("email", email);
+                req.put("phone", phone);
+                req.put("role", "STUDENT");                 // <- String, matches your model change
+                req.put("status", "PENDING");
+                req.put("submittedAt", FieldValue.serverTimestamp());
+                req.put("coursesWantedSummary", coursesSummary);
+                req.put("coursesOfferedSummary", "");       // not used for students
+                req.put("reason", null);                    // none yet
+
+                db.collection("registrationRequests").document(uid)
+                        .set(req)
+                        .addOnSuccessListener(a -> {
+                            Log.d("AccountManager", "RegRequest created for student");
+                            cb.onResult(true, "Student saved");
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e("AccountManager", "Failed to create RegRequest", e);
+                            // Profile exists but request didn’t — still report failure so you notice
+                            cb.onResult(false, "Profile saved, but failed to queue for admin review");
+                        });
+            });
         });
     }
 
@@ -64,7 +105,7 @@ public class AccountManager {
             }
             String uid = repo.uid();
             Map<String, Object> data = new HashMap<>();
-            data.put("role", "Tutor");
+            data.put("role", "TUTOR");
             data.put("firstName", firstName);
             data.put("lastName", lastName);
             data.put("email", email);
@@ -72,8 +113,43 @@ public class AccountManager {
             data.put("degree", degree);
             data.put("coursesOffered", coursesOffered);
 
-            repo.saveUserProfile(uid, data).addOnCompleteListener(save ->
-                    cb.onResult(save.isSuccessful(), save.isSuccessful() ? "Tutor saved" : "Profile save failed"));
+            repo.saveUserProfile(uid, data).addOnCompleteListener(save -> {
+                if (!save.isSuccessful()) {
+                    cb.onResult(false, "Profile save failed");
+                    return;
+                }
+
+                String coursesSummary = "";
+                if (coursesOffered != null && !coursesOffered.isEmpty()) {
+                    coursesSummary = String.join(", ", coursesOffered);
+                }
+
+                FirebaseFirestore db = FirebaseFirestore.getInstance();
+                Map<String, Object> req = new HashMap<>();
+                req.put("id", uid);
+                req.put("userUid", uid);
+                req.put("firstName", firstName);
+                req.put("lastName", lastName);
+                req.put("email", email);
+                req.put("phone", phone);
+                req.put("role", "TUTOR");                   // <- String
+                req.put("status", "PENDING");
+                req.put("submittedAt", FieldValue.serverTimestamp());
+                req.put("coursesWantedSummary", "");        // not used for tutors
+                req.put("coursesOfferedSummary", coursesSummary);
+                req.put("reason", null);
+
+                db.collection("registrationRequests").document(uid)
+                        .set(req)
+                        .addOnSuccessListener(a -> {
+                            Log.d("AccountManager", "RegRequest created for tutor");
+                            cb.onResult(true, "Tutor saved");
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e("AccountManager", "Failed to create RegRequest", e);
+                            cb.onResult(false, "Profile saved, but failed to queue for admin review");
+                        });
+            });
         });
     }
 
@@ -107,7 +183,7 @@ public class AccountManager {
 
             String uid = repo.uid();
             Map<String, Object> data = new HashMap<>();
-            data.put("role", "Admin");
+            data.put("role", "ADMIN");
             data.put("name", name);
             data.put("email", email);
 

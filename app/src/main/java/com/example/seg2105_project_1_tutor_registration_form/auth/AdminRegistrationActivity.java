@@ -58,7 +58,8 @@ public class AdminRegistrationActivity extends AppCompatActivity {
             toast("Password must be at least 6 characters.");
             return;
         }
-        if (!TextUtils.equals(invite, ADMIN_INVITE_CODE)) {
+        // ↓↓↓ changed to case-insensitive comparison ↓↓↓
+        if (!invite.equalsIgnoreCase(ADMIN_INVITE_CODE)) {
             toast("Invalid invite code.");
             return;
         }
@@ -114,6 +115,7 @@ public class AdminRegistrationActivity extends AppCompatActivity {
             }
         });
     }
+
 
     private String text(TextInputEditText e) {
         return e.getText() == null ? "" : e.getText().toString().trim();
