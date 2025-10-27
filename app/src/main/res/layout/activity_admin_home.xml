@@ -3,12 +3,10 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:backgroundTint="#fffef0"
     android:layout_height="match_parent">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:background="#fffef0"
         android:layout_height="match_parent">
 
         <LinearLayout
@@ -22,11 +20,10 @@
                 android:id="@+id/title"
                 android:text="@string/admin_home_title"
                 android:textStyle="bold"
-                android:textSize="25sp"
-                android:fontFamily="@font/codec_pro_regular"
+                android:textSize="20sp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingBottom="10dp"/>
+                android:paddingBottom="12dp"/>
 
             <!-- Welcome banner -->
             <com.google.android.material.card.MaterialCardView
@@ -38,7 +35,7 @@
 
                 <LinearLayout
                     android:orientation="vertical"
-                    android:padding="15dp"
+                    android:padding="16dp"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
 
@@ -71,7 +68,7 @@
                     android:id="@+id/cardInbox"
                     style="@style/Widget.MaterialComponents.CardView"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
+                    android:layout_height="140dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
@@ -94,7 +91,7 @@
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardApproved"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
+                    android:layout_height="140dp"
                     app:layout_columnWeight="1"
                     app:layout_rowWeight="1"
                     app:cardCornerRadius="16dp"
@@ -116,7 +113,7 @@
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardRejected"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
+                    android:layout_height="140dp"
                     app:layout_columnWeight="1"
                     app:layout_rowWeight="1"
                     app:cardCornerRadius="16dp"
@@ -138,7 +135,7 @@
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardLogout"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
+                    android:layout_height="140dp"
                     app:layout_columnWeight="1"
                     app:layout_rowWeight="1"
                     app:cardCornerRadius="16dp"
