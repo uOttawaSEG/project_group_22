@@ -8,11 +8,12 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
+import com.example.seg2105_project_1_tutor_registration_form.RejectedScreen;
+import com.example.seg2105_project_1_tutor_registration_form.data.FirestoreRegistrationRepository;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
@@ -113,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
     private String text(TextInputEditText e) {
         return e.getText() == null ? "" : e.getText().toString().trim();
     }
@@ -121,7 +123,8 @@ public class MainActivity extends AppCompatActivity {
      * Firebase login:
      *  - Sign in with Auth
      *  - Fetch /users/{uid} from Firestore
-     *  - Pass profile fields to WelcomeActivity
+     *  - Build WelcomeActivity intent
+     *  - GATE by registrationRequests status BEFORE entering Welcome
      */
     private void handleLogin() {
         int selectedRoleId = roleRadioGroup.getCheckedRadioButtonId();
@@ -197,8 +200,9 @@ public class MainActivity extends AppCompatActivity {
                                 i.putStringArrayListExtra("coursesOffered", offered);
 
                                 currentUserRole = doc.getString("role");
-                                startActivity(i);
-                                finish();
+
+                                // ---- NEW: gate by registrationRequests BEFORE entering Welcome ----
+                                checkRegistrationStatusAndRoute(uid, i);
                             })
                             .addOnFailureListener(e ->
                                     Toast.makeText(this, "Could not load your profile.", Toast.LENGTH_SHORT).show()
@@ -208,5 +212,50 @@ public class MainActivity extends AppCompatActivity {
 
     public String getCurrentUserRole() {
         return currentUserRole;
+    }
+
+    // ---- Approval routing helpers ----
+    private void goToHome(Intent profileIntent) {
+        startActivity(profileIntent);
+        finish();
+    }
+
+    private void goToRejected(String reason) {
+        Intent i = new Intent(this, RejectedScreen.class);
+        if (reason != null && !reason.trim().isEmpty()) {
+            i.putExtra(RejectedScreen.EXTRA_REASON, reason.trim());
+        }
+        // Optional: sign out so they must log in again after resolving
+        try { FirebaseAuth.getInstance().signOut(); } catch (Exception ignored) {}
+        startActivity(i);
+        finish();
+    }
+
+    private void checkRegistrationStatusAndRoute(String uid, Intent profileIntent) {
+        new FirestoreRegistrationRepository()
+                .details(uid)
+                .addOnSuccessListener(req -> {
+                    String status = (req == null || req.status == null) ? "PENDING" : req.status;
+                    switch (status) {
+                        case "APPROVED":
+                            goToHome(profileIntent);
+                            break;
+                        case "PENDING":
+                            Toast.makeText(this, "Your registration is pending approval.", Toast.LENGTH_LONG).show();
+                            FirebaseAuth.getInstance().signOut(); // keep them on login
+                            break;
+                        case "REJECTED":
+                            goToRejected(req.reason);
+                            break;
+                        default:
+                            Toast.makeText(this, "Unknown registration status. Please contact support.", Toast.LENGTH_LONG).show();
+                            FirebaseAuth.getInstance().signOut();
+                            break;
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Could not verify registration status.", Toast.LENGTH_SHORT).show();
+                    FirebaseAuth.getInstance().signOut();
+                });
     }
 }

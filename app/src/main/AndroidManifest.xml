@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SEG2105_Project_1_Tutor_Registration_Form">
         <activity
-            android:name=".auth.RejectedScreen"
+            android:name=".RejectedScreen"
             android:exported="false" />
         <!-- 1) Launcher: Splash first -->
         <activity
