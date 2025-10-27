@@ -18,6 +18,8 @@ public class AccountManager {
 
     private final FirebaseRepository repo;
 
+    // this is a test to see if shit is getting pushed to github
+
     public AccountManager(Context context) {
         this.repo = new FirebaseRepository();
     }
