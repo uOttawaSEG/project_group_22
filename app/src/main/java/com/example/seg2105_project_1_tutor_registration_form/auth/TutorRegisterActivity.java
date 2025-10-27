@@ -11,11 +11,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
-import com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity;
+import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TutorRegisterActivity extends AppCompatActivity {
 
@@ -27,6 +29,9 @@ public class TutorRegisterActivity extends AppCompatActivity {
 
     // submit
     private Button btnRegister;
+
+    // Firebase
+    private final FirebaseRepository repo = new FirebaseRepository();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,8 +87,8 @@ public class TutorRegisterActivity extends AppCompatActivity {
         String pass  = textOf(etPassword);
         String phone = textOf(etPhone);
 
-        String selectedDegreesCsv = actText(actDegree);   // single or multiple, CSV
-        String selectedCoursesCsv = actText(actCourses);  // CSV
+        String selectedDegreesCsv = actText(actDegree);
+        String selectedCoursesCsv = actText(actCourses);
 
         if (first.isEmpty() || last.isEmpty() || email.isEmpty() || pass.isEmpty()) {
             toast("Please fill all required fields."); return;
@@ -92,31 +97,42 @@ public class TutorRegisterActivity extends AppCompatActivity {
         if (selectedCoursesCsv.isEmpty()) { toast("Please select at least one course."); return; }
         if (pass.length() < 6) { toast("Password must be at least 6 characters."); return; }
 
-        btnRegister.setEnabled(false);
+        // 1) Create Firebase Auth account
+        repo.signUp(email, pass)
+                .addOnSuccessListener(authResult -> {
+                    String uid = repo.uid();
 
-        // ✅ Use AccountManager so it ALSO creates /registrationRequests (status=PENDING)
-        AccountManager am = new AccountManager(this);
-        am.registerTutor(
-                first, last, email, pass,
-                phone,
-                selectedDegreesCsv,                 // degree (string)
-                csvToList(selectedCoursesCsv),      // coursesOffered (list)
-                (ok, message) -> runOnUiThread(() -> {
-                    btnRegister.setEnabled(true);
-                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-                    if (ok) {
-                        Intent i = new Intent(this, WelcomeActivity.class);
-                        i.putExtra("role", "Tutor");
-                        i.putExtra("email", email);
-                        i.putExtra("name", first + " " + last);
-                        i.putExtra("phone", phone);
-                        i.putExtra("degreeCsv", selectedDegreesCsv);
-                        i.putExtra("coursesCsv", selectedCoursesCsv);
-                        startActivity(i);
-                        finish();
-                    }
+                    // 2) Save profile to Firestore
+                    Map<String, Object> profile = new HashMap<>();
+                    profile.put("role", "tutor");
+                    profile.put("email", email);
+                    profile.put("firstName", first);
+                    profile.put("lastName", last);
+                    profile.put("phone", phone);
+                    profile.put("degreesCsv", selectedDegreesCsv);
+                    profile.put("coursesCsv", selectedCoursesCsv);
+
+                    repo.saveUserProfile(uid, profile)
+                            .addOnSuccessListener(x -> {
+                                toast("Registration successful!");
+
+                                // 3) Go to Welcome screen with details
+                                Intent i = new Intent(this,
+                                        com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class);
+                                i.putExtra("role", "Tutor");
+                                i.putExtra("email", email);
+                                i.putExtra("name", first + " " + last);
+                                i.putExtra("phone", phone);
+                                i.putExtra("degreeCsv", selectedDegreesCsv);
+                                i.putExtra("coursesCsv", selectedCoursesCsv);
+                                startActivity(i);
+                                finish();
+                            })
+                            .addOnFailureListener(e ->
+                                    toast("Failed to save profile: " + e.getMessage()));
                 })
-        );
+                .addOnFailureListener(e ->
+                        toast("Sign up failed: " + e.getMessage()));
     }
 
     private String textOf(TextInputEditText e) {
