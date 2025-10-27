@@ -1,5 +1,31 @@
-
-
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SEG2105_Project_1_Tutor_Registration_Form</string>
+    <!-- App -->
+    <string name="app_name">Mentora</string>
+
+    <!-- Admin Home -->
+    <string name="admin_home_title">Admin Home</string>
+    <string name="welcome_admin">Welcome Admin</string>
+    <string name="choose_module">Choose a module to manage.</string>
+    <string name="inbox">Inbox</string>
+    <string name="approved">Approved</string>
+    <string name="rejected">Rejected</string>
+    <string name="logout">Log out</string>
+
+    <!-- Admin Inbox -->
+    <string name="admin_inbox_title">Admin Inbox</string>
+    <string name="search_inbox_hint">search inbox…</string>
+    <string name="no_pending">No pending requests</string>
+    <string name="pending">Pending</string>
+
+    <!-- Actions / Snackbars -->
+    <string name="reject">Reject</string>
+    <string name="approved_snack">Approved</string>
+    <string name="rejected_snack">Rejected</string>
+    <string name="approve_failed">Approve failed</string>
+    <string name="reject_failed">Reject failed</string>
+
+    <!-- Reject dialog -->
+    <string name="reject_reason_hint">Reason (optional)</string>
+    <string name="reject_reason_helper">Add a short message for the user (max 140 chars).</string>
 </resources>

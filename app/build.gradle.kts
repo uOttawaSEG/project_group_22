@@ -42,10 +42,17 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
 
+    // UI libs you’re using
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.gridlayout:gridlayout:1.0.0")      // for Admin Home grid
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
+
+    // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
+    // Firebase (BoM controls versions)
     implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")

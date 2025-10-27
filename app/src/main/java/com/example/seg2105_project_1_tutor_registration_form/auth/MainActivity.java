@@ -121,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
      * Firebase login:
      *  - Sign in with Auth
      *  - Fetch /users/{uid} from Firestore
-     *  - Pass profile fields to WelcomeActivity
+     *  - Pass profile fields or route to Admin home
      */
     private void handleLogin() {
         int selectedRoleId = roleRadioGroup.getCheckedRadioButtonId();
@@ -161,13 +161,24 @@ public class MainActivity extends AppCompatActivity {
                                     return;
                                 }
 
+                                // Route admins to AdminHomeActivity; everyone else → WelcomeActivity
+                                String role = doc.getString("role");
+                                if (role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("Administrator"))) {
+                                    startActivity(new Intent(
+                                            this,
+                                            com.example.seg2105_project_1_tutor_registration_form.ui.admin.AdminHomeActivity.class
+                                    ));
+                                    finish();
+                                    return;
+                                }
+
                                 Intent i = new Intent(
                                         this,
                                         com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class
                                 );
 
                                 // Core fields
-                                i.putExtra("role",      doc.getString("role"));
+                                i.putExtra("role",      role);
                                 i.putExtra("firstName", doc.getString("firstName"));
                                 i.putExtra("lastName",  doc.getString("lastName"));
                                 i.putExtra("email",     doc.getString("email"));
@@ -196,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                                 i.putStringArrayListExtra("coursesOffered", offered);
 
-                                currentUserRole = doc.getString("role");
+                                currentUserRole = role;
                                 startActivity(i);
                                 finish();
                             })
