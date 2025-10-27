@@ -9,7 +9,6 @@ import android.widget.Toast;
 import com.example.seg2105_project_1_tutor_registration_form.auth.MainActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.example.seg2105_project_1_tutor_registration_form.data.FirestoreRegistrationRepository;
-import com.example.seg2105_project_1_tutor_registration_form.model.RegRequest;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -89,49 +88,6 @@ public class WelcomeActivity extends AppCompatActivity {
     }
 
     private String n(String s) { return s == null ? "" : s.trim(); }
-
-    private void goToHome() {
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
-        finish(); // optional: prevents user from going back to login
-    }
-    private void checkRegistrationStatusAndRoute() {
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            // Not logged in – return to sign-in screen if that's your flow
-            return;
-        }
-
-        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        new FirestoreRegistrationRepository().details(uid)
-                .addOnSuccessListener(req -> {
-                    if (req == null || req.status == null) {
-                        // No request yet (older accounts) – treat as pending or let through, your call
-                        Toast.makeText(this, "Registration pending review", Toast.LENGTH_LONG).show();
-                        // stay on info screen / disable nav
-                        return;
-                    }
-
-                    switch (req.status) {
-                        case "APPROVED":
-                            goToHome();
-                            break;
-
-                        case "PENDING":
-                            Toast.makeText(this, "Your registration is pending approval.", Toast.LENGTH_LONG).show();
-                            break;
-
-                        case "REJECTED":
-                            String msg = (req.reason != null && !req.reason.isEmpty())
-                                    ? "Registration rejected: " + req.reason
-                                    : "Registration rejected. Please contact support.";
-                            Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Could not check registration status.", Toast.LENGTH_SHORT).show();
-                });
-    }
 
 }
 
