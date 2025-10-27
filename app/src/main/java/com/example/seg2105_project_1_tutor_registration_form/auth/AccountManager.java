@@ -17,7 +17,6 @@ public class AccountManager {
     public interface Callback { void onResult(boolean ok, String message); }
 
     private final FirebaseRepository repo;
-
     // this is a test to see if shit is getting pushed to github
 
     public AccountManager(Context context) {
