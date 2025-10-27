@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <!-- Needed for Firebase/Auth/Firestore network calls -->
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -13,23 +12,22 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.SEG2105_Project_1_Tutor_Registration_Form">
-
+        <activity
+            android:name=".auth.RejectedScreen"
+            android:exported="false" />
         <!-- 1) Launcher: Splash first -->
         <activity
             android:name=".auth.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- 2) Main login screen (opened from Splash) -->
+        </activity> <!-- 2) Main login screen (opened from Splash) -->
         <activity
             android:name=".auth.MainActivity"
-            android:exported="false" />
-
-        <!-- 3) Registration screens -->
+            android:exported="false" /> <!-- 3) Registration screens -->
         <activity
             android:name=".auth.TutorRegisterActivity"
             android:exported="false"
@@ -41,9 +39,7 @@
         <activity
             android:name=".auth.AdminRegistrationActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <!-- 4) Post-auth landing -->
+            android:windowSoftInputMode="adjustResize" /> <!-- 4) Post-auth landing -->
         <activity
             android:name=".WelcomeActivity"
             android:exported="false" />
