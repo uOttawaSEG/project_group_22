@@ -163,7 +163,10 @@ public class MainActivity extends AppCompatActivity {
 
                                 // Route admins to AdminHomeActivity; everyone else → WelcomeActivity
                                 String role = doc.getString("role");
-                                if (role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("Administrator"))) {
+                                if (role != null && (
+                                        role.equalsIgnoreCase("admin") ||
+                                                role.equalsIgnoreCase("ADMIN") ||
+                                                role.equalsIgnoreCase("Administrator"))) {
                                     startActivity(new Intent(
                                             this,
                                             com.example.seg2105_project_1_tutor_registration_form.ui.admin.AdminHomeActivity.class

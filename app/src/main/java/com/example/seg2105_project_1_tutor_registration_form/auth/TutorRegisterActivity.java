@@ -11,11 +11,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
+import com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TutorRegisterActivity extends AppCompatActivity {
@@ -83,39 +82,36 @@ public class TutorRegisterActivity extends AppCompatActivity {
         String pass  = textOf(etPassword);
         String phone = textOf(etPhone);
 
-        String degreesCsv = actText(actDegree);
-        String coursesCsv = actText(actCourses);
+        String selectedDegreesCsv = actText(actDegree);   // single or multiple, CSV
+        String selectedCoursesCsv = actText(actCourses);  // CSV
 
         if (first.isEmpty() || last.isEmpty() || email.isEmpty() || pass.isEmpty()) {
             toast("Please fill all required fields."); return;
         }
+        if (selectedDegreesCsv.isEmpty()) { toast("Please select at least one degree."); return; }
+        if (selectedCoursesCsv.isEmpty()) { toast("Please select at least one course."); return; }
         if (pass.length() < 6) { toast("Password must be at least 6 characters."); return; }
-        if (degreesCsv.isEmpty()) { toast("Please select at least one degree."); return; }
-        if (coursesCsv.isEmpty()) { toast("Please select at least one course."); return; }
-
-        List<String> degrees = csvToList(degreesCsv);
-        List<String> courses = csvToList(coursesCsv);
-
-        // pick one string for highestDegree
-        String highestDegree = degrees.isEmpty() ? "" : degrees.get(0);
 
         btnRegister.setEnabled(false);
 
-        //AccountManager so auth + user profile + registration request happen together
+        // ✅ Use AccountManager so it ALSO creates /registrationRequests (status=PENDING)
         AccountManager am = new AccountManager(this);
         am.registerTutor(
-                first, last, email, pass, phone,
-                highestDegree,
-                courses,
+                first, last, email, pass,
+                phone,
+                selectedDegreesCsv,                 // degree (string)
+                csvToList(selectedCoursesCsv),      // coursesOffered (list)
                 (ok, message) -> runOnUiThread(() -> {
-                    toast(message);
                     btnRegister.setEnabled(true);
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
                     if (ok) {
-
-                        FirebaseAuth.getInstance().signOut();
-
-                        Intent i = new Intent(this, MainActivity.class);
-                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        Intent i = new Intent(this, WelcomeActivity.class);
+                        i.putExtra("role", "Tutor");
+                        i.putExtra("email", email);
+                        i.putExtra("name", first + " " + last);
+                        i.putExtra("phone", phone);
+                        i.putExtra("degreeCsv", selectedDegreesCsv);
+                        i.putExtra("coursesCsv", selectedCoursesCsv);
                         startActivity(i);
                         finish();
                     }
@@ -133,8 +129,13 @@ public class TutorRegisterActivity extends AppCompatActivity {
     }
 
     private List<String> csvToList(String csv) {
-        if (TextUtils.isEmpty(csv)) return Collections.emptyList();
-        return Arrays.asList(csv.split("\\s*,\\s*"));
+        List<String> out = new ArrayList<>();
+        if (TextUtils.isEmpty(csv)) return out;
+        for (String s : csv.split(",")) {
+            String t = s.trim();
+            if (!t.isEmpty()) out.add(t);
+        }
+        return out;
     }
 
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_LONG).show(); }
