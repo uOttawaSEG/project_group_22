@@ -11,12 +11,14 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
+import com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StudentRegistrationActivity extends AppCompatActivity {
 
@@ -67,7 +69,7 @@ public class StudentRegistrationActivity extends AppCompatActivity {
         etNotes     = findViewById(R.id.etNotes);
         btnRegister = findViewById(R.id.btnRegisterStudent);
 
-        // --- Register flow ---
+        // --- Register flow (now uses AccountManager to also create registrationRequests) ---
         btnRegister.setOnClickListener(v -> {
             String first     = s(etFirst);
             String last      = s(etLast);
@@ -80,6 +82,7 @@ public class StudentRegistrationActivity extends AppCompatActivity {
             String courses   = s(actCourses); // comma-separated
             String notes     = s(etNotes);
 
+            // Minimal validation
             if (TextUtils.isEmpty(first)) { toast("First name is required"); return; }
             if (TextUtils.isEmpty(last))  { toast("Last name is required"); return; }
             if (TextUtils.isEmpty(email)) { toast("Email is required"); return; }
@@ -87,24 +90,25 @@ public class StudentRegistrationActivity extends AppCompatActivity {
                 toast("Password must be at least 6 characters"); return;
             }
 
-            List<String> coursesWanted = courses.isEmpty()
-                    ? Arrays.asList()
-                    : Arrays.asList(courses.split("\\s*,\\s*"));
-
             btnRegister.setEnabled(false);
 
             AccountManager am = new AccountManager(this);
             am.registerStudent(
                     first, last, email, password,
                     phone, studentId, program, studyYear,
-                    coursesWanted, notes,
+                    csvToList(courses), // convert "A, B" -> List<String>
+                    notes,
                     (ok, message) -> runOnUiThread(() -> {
-                        toast(message);
                         btnRegister.setEnabled(true);
+                        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
                         if (ok) {
-                            FirebaseAuth.getInstance().signOut();
-                            Intent i = new Intent(this, MainActivity.class);
-                            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            Intent i = new Intent(this, WelcomeActivity.class);
+                            i.putExtra("role", "STUDENT");
+                            i.putExtra("email", email);
+                            i.putExtra("name", first + " " + last);
+                            i.putExtra("phone", phone);
+                            i.putExtra("degreeCsv", program);
+                            i.putExtra("coursesCsv", courses);
                             startActivity(i);
                             finish();
                         }
@@ -117,5 +121,16 @@ public class StudentRegistrationActivity extends AppCompatActivity {
     private String s(TextInputEditText et) { return et == null || et.getText()==null ? "" : et.getText().toString().trim(); }
     private String s(AutoCompleteTextView v) { return v == null || v.getText()==null ? "" : v.getText().toString().trim(); }
     private String s(MultiAutoCompleteTextView v) { return v == null || v.getText()==null ? "" : v.getText().toString().trim(); }
+
+    private List<String> csvToList(String csv) {
+        List<String> out = new ArrayList<>();
+        if (TextUtils.isEmpty(csv)) return out;
+        for (String s : csv.split(",")) {
+            String t = s.trim();
+            if (!t.isEmpty()) out.add(t);
+        }
+        return out;
+    }
+
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_SHORT).show(); }
 }
