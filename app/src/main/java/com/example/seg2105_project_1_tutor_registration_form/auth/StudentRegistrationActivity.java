@@ -11,13 +11,12 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
-import com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity;
-import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 
 public class StudentRegistrationActivity extends AppCompatActivity {
 
@@ -35,8 +34,6 @@ public class StudentRegistrationActivity extends AppCompatActivity {
     private AutoCompleteTextView actStudyYear;
     private MultiAutoCompleteTextView actCourses;
     private MaterialButton btnRegister;
-
-    private final FirebaseRepository repo = new FirebaseRepository();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,7 +80,6 @@ public class StudentRegistrationActivity extends AppCompatActivity {
             String courses   = s(actCourses); // comma-separated
             String notes     = s(etNotes);
 
-            // Minimal validation (expand as needed for your marking rubric)
             if (TextUtils.isEmpty(first)) { toast("First name is required"); return; }
             if (TextUtils.isEmpty(last))  { toast("Last name is required"); return; }
             if (TextUtils.isEmpty(email)) { toast("Email is required"); return; }
@@ -91,48 +87,29 @@ public class StudentRegistrationActivity extends AppCompatActivity {
                 toast("Password must be at least 6 characters"); return;
             }
 
+            List<String> coursesWanted = courses.isEmpty()
+                    ? Arrays.asList()
+                    : Arrays.asList(courses.split("\\s*,\\s*"));
+
             btnRegister.setEnabled(false);
 
-            repo.signUp(email, password).addOnSuccessListener(authRes -> {
-                String uid = repo.uid();
-                if (uid == null) {
-                    btnRegister.setEnabled(true);
-                    toast("Could not get user id after sign up.");
-                    return;
-                }
-
-                Map<String, Object> profile = new HashMap<>();
-                profile.put("role", "student");          // IMPORTANT: role saved for later
-                profile.put("email", email);
-                profile.put("firstName", first);
-                profile.put("lastName", last);
-                profile.put("phone", phone);
-                profile.put("studentId", studentId);
-                profile.put("program", program);
-                profile.put("studyYear", studyYear);
-                profile.put("coursesCsv", courses);
-                profile.put("notes", notes);
-
-                repo.saveUserProfile(uid, profile).addOnSuccessListener(x -> {
-                    // Go to Welcome screen and show who they are
-                    Intent i = new Intent(this, WelcomeActivity.class);
-                    i.putExtra("role", "student");
-                    i.putExtra("email", email);
-                    i.putExtra("name", first + " " + last);
-                    i.putExtra("phone", phone);
-                    i.putExtra("degreeCsv", program);    // optional mapping
-                    i.putExtra("coursesCsv", courses);
-                    startActivity(i);
-                    finish();
-                }).addOnFailureListener(e -> {
-                    btnRegister.setEnabled(true);
-                    toast("Failed to save profile: " + e.getMessage());
-                });
-
-            }).addOnFailureListener(e -> {
-                btnRegister.setEnabled(true);
-                toast("Sign up failed: " + e.getMessage());
-            });
+            AccountManager am = new AccountManager(this);
+            am.registerStudent(
+                    first, last, email, password,
+                    phone, studentId, program, studyYear,
+                    coursesWanted, notes,
+                    (ok, message) -> runOnUiThread(() -> {
+                        toast(message);
+                        btnRegister.setEnabled(true);
+                        if (ok) {
+                            FirebaseAuth.getInstance().signOut();
+                            Intent i = new Intent(this, MainActivity.class);
+                            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(i);
+                            finish();
+                        }
+                    })
+            );
         });
     }
 
