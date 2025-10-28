@@ -3,13 +3,14 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:backgroundTint="#fffef0"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#FFFEEF">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:background="#fffef0"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:background="#FFFEEF">
 
         <LinearLayout
             android:orientation="vertical"
@@ -18,11 +19,12 @@
             android:layout_height="wrap_content">
 
             <!-- Title -->
-            <TextView
+            <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/title"
                 android:text="@string/admin_home_title"
                 android:textStyle="bold"
-                android:textSize="25sp"
+                android:textSize="26sp"
+                android:textColor="#0F172A"
                 android:fontFamily="@font/codec_pro_regular"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -31,28 +33,37 @@
             <!-- Welcome banner -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="100dp"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
+                app:cardCornerRadius="22dp"
+                app:strokeColor="#F1E8C6"
+                app:strokeWidth="1dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFF9DC">
 
                 <LinearLayout
                     android:orientation="vertical"
-                    android:padding="15dp"
+                    android:padding="18dp"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:layout_height="wrap_content">
 
-                    <TextView
+                    <com.google.android.material.textview.MaterialTextView
                         android:text="@string/welcome_admin"
                         android:textStyle="bold"
-                        android:textSize="24sp"
+                        android:textSize="22sp"
+                        android:textColor="#0F172A"
+                        android:fontFamily="@font/codec_pro_regular"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
 
-                    <TextView
+                    <com.google.android.material.textview.MaterialTextView
                         android:text="@string/choose_module"
+                        android:textSize="14sp"
+                        android:textColor="#6B7280"
+                        android:fontFamily="@font/codec_pro_regular"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -65,95 +76,247 @@
                 app:useDefaultMargins="true">
 
                 <!-- Inbox -->
-
-                <!-- Approved -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardInbox"
-                    style="@style/Widget.MaterialComponents.CardView"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
+                    android:layout_height="110dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp"
                     app:layout_column="0"
                     app:layout_columnWeight="1"
                     app:layout_row="0"
-                    app:layout_rowWeight="1">
+                    app:layout_rowWeight="1"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="1dp"
+                    app:strokeColor="#E9E1FF"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="#F6F2FF">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:text="@string/inbox"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="📥"
+                                android:textSize="26sp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/inbox"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="#4C1D95"
+                                android:fontFamily="@font/codec_pro_regular"/>
+                        </LinearLayout>
+
+                        <!-- optional badge -->
+                        <TextView
+                            android:id="@+id/badgeInbox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textStyle="bold"
+                            android:textSize="12sp"
+                            android:textColor="#4C1D95"
+                            android:paddingLeft="10dp"
+                            android:paddingRight="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:layout_gravity="end|top"
+                            android:layout_margin="10dp"
+                            android:background="@drawable/bg_badge_lilac"/>
+                    </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Approved -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardApproved"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
-                    app:layout_columnWeight="1"
-                    app:layout_rowWeight="1"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp"
+                    android:layout_height="110dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
+                    android:foreground="?attr/selectableItemBackground"
+                    app:layout_columnWeight="1"
+                    app:layout_rowWeight="1"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="1dp"
+                    app:strokeColor="#BEEAD4"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="#DFF7E8">
 
-                    <TextView
-                        android:layout_gravity="center"
-                        android:text="@string/approved"
-                        android:textStyle="bold"
-                        android:textSize="22sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="✅"
+                                android:textSize="26sp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/approved"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="#065F46"
+                                android:fontFamily="@font/codec_pro_regular"/>
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/badgeApproved"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textStyle="bold"
+                            android:textSize="12sp"
+                            android:textColor="#065F46"
+                            android:paddingLeft="10dp"
+                            android:paddingRight="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:layout_gravity="end|top"
+                            android:layout_margin="10dp"
+                            android:background="@drawable/bg_badge_mint"/>
+                    </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
                 <!-- Rejected -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardRejected"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
-                    app:layout_columnWeight="1"
-                    app:layout_rowWeight="1"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp"
+                    android:layout_height="110dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
+                    android:foreground="?attr/selectableItemBackground"
+                    app:layout_columnWeight="1"
+                    app:layout_rowWeight="1"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="1dp"
+                    app:strokeColor="#FCA5A5"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="#FFE4E6">
 
-                    <TextView
-                        android:layout_gravity="center"
-                        android:text="@string/rejected"
-                        android:textStyle="bold"
-                        android:textSize="22sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="❌"
+                                android:textSize="26sp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/rejected"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="#991B1B"
+                                android:fontFamily="@font/codec_pro_regular"/>
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/badgeRejected"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textStyle="bold"
+                            android:textSize="12sp"
+                            android:textColor="#991B1B"
+                            android:paddingLeft="10dp"
+                            android:paddingRight="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:layout_gravity="end|top"
+                            android:layout_margin="10dp"
+                            android:background="@drawable/bg_badge_rose"/>
+                    </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Log out -->
+                <!-- Logout -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardLogout"
                     android:layout_width="0dp"
-                    android:layout_height="80dp"
-                    app:layout_columnWeight="1"
-                    app:layout_rowWeight="1"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp"
+                    android:layout_height="110dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
+                    android:foreground="?attr/selectableItemBackground"
+                    app:layout_columnWeight="1"
+                    app:layout_rowWeight="1"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="1dp"
+                    app:strokeColor="#E2E8F0"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="#F1F5F9">
 
-                    <TextView
-                        android:layout_gravity="center"
-                        android:text="@string/logout"
-                        android:textStyle="bold"
-                        android:textSize="22sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🚪"
+                                android:textSize="26sp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/logout"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="#0F172A"
+                                android:fontFamily="@font/codec_pro_regular"/>
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/badgeLogout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:visibility="gone"
+                            android:textStyle="bold"
+                            android:textSize="12sp"
+                            android:textColor="#0F172A"
+                            android:paddingLeft="10dp"
+                            android:paddingRight="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:layout_gravity="end|top"
+                            android:layout_margin="10dp"
+                            android:background="@drawable/bg_badge_neutral"/>
+                    </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
             </androidx.gridlayout.widget.GridLayout>

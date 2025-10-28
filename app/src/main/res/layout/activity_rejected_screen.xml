@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="#fffef0"
     android:padding="24dp"
-    tools:context=".RejectedScreen">
+    tools:context="auth.RejectedScreen">
 
     <ScrollView
         android:layout_width="match_parent"

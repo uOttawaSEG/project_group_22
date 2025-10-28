@@ -16,7 +16,50 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentSnapshot;
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * MainActivity (Login & role-based entry point) — human-readable overview
+ * ─────────────────────────────────────────────────────────────────────────────
+ * What this screen does
+ * • Lets a user pick a role (Student / Tutor / Admin), enter email + password,
+ *   and log in using Firebase Auth.
+ * • After login, it fetches the user profile from /users/{uid} in Firestore and
+ *   routes the user *only* through a registration “gate” that checks the
+ *   /registrationRequests status (APPROVED / PENDING / REJECTED).
+ *
+ * Key UI pieces
+ * • RadioGroup for role selection (Student / Tutor / Admin)
+ * • Email & Password inputs
+ * • Login button
+ * • “Register” link (navigates to the right registration screen based on role)
+ * • “Forgot password?” link (opens dialog, sends Firebase reset email)
+ *
+ * Why the “gate” matters
+ * • Even if Auth succeeds, users shouldn’t proceed until an Admin has approved
+ *   their registration. The gate queries /registrationRequests and:
+ *   - REJECTED → navigates to RejectedScreen (shows reason if available)
+ *   - not APPROVED → shows “pending” toast (no navigation)
+ *   - APPROVED → routes to AdminHome or WelcomeActivity
+ *
+ * Failure modes to expect (and how the UI responds)
+ * • Bad email/password → toast “Invalid email/password” and clears password.
+ * • Profile doc missing → toast “Profile not found.”
+ * • Request status lookup fails → toast “Could not verify request status.”
+ * • Request not found → toast “Your registration is pending admin approval.”
+ *
+ * Security / trust notes
+ * • Client-side checks are convenience only; make sure Firestore rules protect
+ *   which role can access which path, and that Admin approval is enforced
+ *   server-side by security rules or backend logic where possible.
+ *
+ * Maintenance tips
+ * • If you rename roles, update both the RadioButton labels and the string
+ *   checks here (e.g., "Student", "Tutor", "Admin/Administrator").
+ * • Keep the “gate” routing logic in one place to avoid bypasses.
+ * • Localize toast strings if adding i18n.
+ */
 public class MainActivity extends AppCompatActivity {
 
     private static final String ROLE_STUDENT = "Student";
@@ -121,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
      * Firebase login:
      *  - Sign in with Auth
      *  - Fetch /users/{uid} from Firestore
-     *  - Pass profile fields or route to Admin home
+     *  - Route ONLY through the registration gate
      */
     private void handleLogin() {
         int selectedRoleId = roleRadioGroup.getCheckedRadioButtonId();
@@ -161,58 +204,10 @@ public class MainActivity extends AppCompatActivity {
                                     return;
                                 }
 
-                                // Route admins to AdminHomeActivity; everyone else → WelcomeActivity
+                                // ⬇️ Do NOT navigate here anymore.
+                                // ⬇️ Only call the gate to decide (Rejected / Pending / Approved).
                                 String role = doc.getString("role");
-                                if (role != null && (
-                                        role.equalsIgnoreCase("admin") ||
-                                                role.equalsIgnoreCase("ADMIN") ||
-                                                role.equalsIgnoreCase("Administrator"))) {
-                                    startActivity(new Intent(
-                                            this,
-                                            com.example.seg2105_project_1_tutor_registration_form.ui.admin.AdminHomeActivity.class
-                                    ));
-                                    finish();
-                                    return;
-                                }
-
-                                Intent i = new Intent(
-                                        this,
-                                        com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class
-                                );
-
-                                // Core fields
-                                i.putExtra("role",      role);
-                                i.putExtra("firstName", doc.getString("firstName"));
-                                i.putExtra("lastName",  doc.getString("lastName"));
-                                i.putExtra("email",     doc.getString("email"));
-                                i.putExtra("phone",     doc.getString("phone"));
-
-                                // Student-specific
-                                i.putExtra("program",   doc.getString("program"));
-                                i.putExtra("studyYear", doc.getString("studyYear"));
-                                java.util.ArrayList<String> wanted = new java.util.ArrayList<>();
-                                Object w = doc.get("coursesWanted");
-                                if (w instanceof java.util.List<?>) {
-                                    for (Object o : (java.util.List<?>) w) {
-                                        if (o != null) wanted.add(String.valueOf(o));
-                                    }
-                                }
-                                i.putStringArrayListExtra("coursesWanted", wanted);
-
-                                // Tutor-specific
-                                i.putExtra("degree", doc.getString("degree"));
-                                java.util.ArrayList<String> offered = new java.util.ArrayList<>();
-                                Object o = doc.get("coursesOffered");
-                                if (o instanceof java.util.List<?>) {
-                                    for (Object ob : (java.util.List<?>) o) {
-                                        if (ob != null) offered.add(String.valueOf(ob));
-                                    }
-                                }
-                                i.putStringArrayListExtra("coursesOffered", offered);
-
-                                currentUserRole = role;
-                                startActivity(i);
-                                finish();
+                                gateByRequestStatusAndRoute(uid, role);
                             })
                             .addOnFailureListener(e ->
                                     Toast.makeText(this, "Could not load your profile.", Toast.LENGTH_SHORT).show()
@@ -220,7 +215,103 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    // ---------- Registration gate (with resilient fallback) ----------
+    private void gateByRequestStatusAndRoute(String uid, String roleFromProfile) {
+        // ─────────────────────────────────────────────────────────────
+        // Bypass the registration gate entirely for Admin accounts
+        // ─────────────────────────────────────────────────────────────
+        if (roleFromProfile != null &&
+                (roleFromProfile.equalsIgnoreCase("admin") ||
+                        roleFromProfile.equalsIgnoreCase("administrator"))) {
+            startActivity(new Intent(this,
+                    com.example.seg2105_project_1_tutor_registration_form.ui.admin.AdminHomeActivity.class));
+            finish();
+            return;
+        }
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        // Fast path: /registrationRequests/{uid}
+        db.collection("registrationRequests").document(uid)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc != null && doc.exists()) {
+                        handleGateDecision(doc.getString("status"), doc.getString("reason"), roleFromProfile);
+                    } else {
+                        // Fallback: some rows may not use UID as document id
+                        db.collection("registrationRequests")
+                                .whereEqualTo("userUid", uid)
+                                .limit(1)
+                                .get()
+                                .addOnSuccessListener(q -> {
+                                    if (!q.isEmpty()) {
+                                        DocumentSnapshot d = q.getDocuments().get(0);
+                                        handleGateDecision(d.getString("status"), d.getString("reason"), roleFromProfile);
+                                    } else {
+                                        Toast.makeText(this,
+                                                "Your registration is pending admin approval.",
+                                                Toast.LENGTH_LONG).show();
+                                    }
+                                })
+                                .addOnFailureListener(e ->
+                                        Toast.makeText(this, "Could not verify request status.",
+                                                Toast.LENGTH_SHORT).show());
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Could not verify request status.", Toast.LENGTH_SHORT).show());
+    }
+
+    private void handleGateDecision(String status, String reason, String roleFromProfile) {
+        if ("REJECTED".equalsIgnoreCase(status)) {
+            Intent r = new Intent(this,
+                    com.example.seg2105_project_1_tutor_registration_form.auth.RejectedScreen.class);
+            if (reason != null && !reason.isEmpty()) r.putExtra("EXTRA_REASON", reason);
+            startActivity(r);
+            finish();
+            return;
+        }
+
+        if (!"APPROVED".equalsIgnoreCase(status)) {
+            Toast.makeText(this, "Your registration is pending admin approval.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Approved → route normally
+        if (roleFromProfile != null &&
+                (roleFromProfile.equalsIgnoreCase("admin") ||
+                        roleFromProfile.equalsIgnoreCase("administrator"))) {
+            startActivity(new Intent(this,
+                    com.example.seg2105_project_1_tutor_registration_form.ui.admin.AdminHomeActivity.class));
+        } else {
+            startActivity(new Intent(this,
+                    com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class));
+        }
+        finish();
+    }
+
     public String getCurrentUserRole() {
         return currentUserRole;
     }
 }
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * End of MainActivity — TL;DR !
+ * ─────────────────────────────────────────────────────────────────────────────
+ * • Auth first, then Firestore profile, then the “registration gate.”
+ * • Gate decides: REJECTED → RejectedScreen; PENDING/unknown → toast; APPROVED → route.
+ * • Register link sends users to the correct registration activity based on selected role.
+ * • Forgot password triggers Firebase email flow via dialog.
+ *
+ * Quick test ideas
+ * • Wrong password → should show toast and clear password field.
+ * • Missing profile doc → should show “Profile not found.”
+ * • No request row → should show “pending admin approval.”
+ * • Status changes in Firestore → verify each branch routes correctly.
+ *
+ * Notes
+ * • Keep role string comparisons in sync with UI labels and server-side rules.
+ * • If adding MFA or email verification, extend handleLogin() before hitting the gate.
+ */

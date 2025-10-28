@@ -46,6 +46,7 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.gridlayout:gridlayout:1.0.0")      // for Admin Home grid
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
+    implementation("com.google.android.material:material:1.12.0")
 
     // Tests
     testImplementation(libs.junit)

@@ -1,5 +1,6 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.admin;
 
+import android.content.Intent; // <-- added
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -17,8 +18,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.data.FirestoreRegistrationRepository;
 import com.example.seg2105_project_1_tutor_registration_form.data.RegistrationRepository;
-import com.example.seg2105_project_1_tutor_registration_form.data.RequestStatus;
 import com.example.seg2105_project_1_tutor_registration_form.model.RegRequest;
+import com.example.seg2105_project_1_tutor_registration_form.model.RequestStatus;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -26,6 +27,37 @@ import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * AdminInboxActivity — human-readable overview
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Purpose
+ * • Admin dashboard to review registration requests (Pending / Approved / Rejected).
+ * • Supports search, approve, and reject (with optional reason).
+ *
+ * Screen structure
+ * • RecyclerView + PendingExpandableAdapter to render requests.
+ * • Search box filters by name, email, or role (client-side).
+ * • ProgressBar + empty-state view for loading/empty lists.
+ *
+ * Data flow
+ * • statusToShow is chosen from Intent extra "filter_status" ("PENDING"/"APPROVED"/"REJECTED").
+ * • loadList() → repo.listByStatus(statusToShow) → cache (in-memory) → applyFilter(query) → adapter.submit().
+ * • Approve/Reject actions call repo.approve(...) / repo.reject(...), then either reload or navigate to the new tab.
+ *
+ * UX notes
+ * • Snackbars communicate success/failure and provide shortcuts (“View approved/rejected”).
+ * • Search updates on text change; filtering is case-insensitive and trims whitespace.
+ *
+ * Safety
+ * • getAdminUid() reads FirebaseAuth current user; if null, action is blocked with a snackbar.
+ * • All repository calls handle onFailure with user-visible errors.
+ *
+ * Maintenance tips
+ * • If you add pagination/server-side filtering later, replace applyFilter() with query params.
+ * • Keep role/status strings consistent with Firestore and the rest of the app.
+ * • Localize strings (toasts/snackbars/dialog titles) before production.
+ */
 public class AdminInboxActivity extends AppCompatActivity implements PendingExpandableAdapter.Actions {
 
     private RegistrationRepository repo;
@@ -114,6 +146,14 @@ public class AdminInboxActivity extends AppCompatActivity implements PendingExpa
         if (show) empty.setVisibility(View.GONE);
     }
 
+    // <-- added helper
+    private void openInbox(String status) {
+        Intent i = new Intent(this, AdminInboxActivity.class);
+        i.putExtra("filter_status", status);   // "PENDING" | "APPROVED" | "REJECTED"
+        startActivity(i);
+        finish();
+    }
+
     // --- Adapter callbacks ---
 
     @Override public void onApprove(RegRequest item) {
@@ -126,8 +166,15 @@ public class AdminInboxActivity extends AppCompatActivity implements PendingExpa
         showLoading(true);
         repo.approve(item.getId(), adminUid).addOnSuccessListener(unused -> {
             Snackbar.make(findViewById(android.R.id.content),
-                    R.string.approved_snack, Snackbar.LENGTH_SHORT).show();
-            loadList();
+                            R.string.approved_snack, Snackbar.LENGTH_LONG)
+                    .setAction("View approved", v -> openInbox("APPROVED"))
+                    .show();
+
+            if (statusToShow == RequestStatus.PENDING) {
+                openInbox("APPROVED");
+            } else {
+                loadList();
+            }
         }).addOnFailureListener(e -> {
             showLoading(false);
             Snackbar.make(findViewById(android.R.id.content),
@@ -156,8 +203,15 @@ public class AdminInboxActivity extends AppCompatActivity implements PendingExpa
                     showLoading(true);
                     repo.reject(item.getId(), adminUid, reason).addOnSuccessListener(unused -> {
                         Snackbar.make(findViewById(android.R.id.content),
-                                R.string.rejected_snack, Snackbar.LENGTH_SHORT).show();
-                        loadList();
+                                        R.string.rejected_snack, Snackbar.LENGTH_LONG)
+                                .setAction("View rejected", v -> openInbox("REJECTED"))
+                                .show();
+
+                        if (statusToShow == RequestStatus.PENDING) {
+                            openInbox("REJECTED");
+                        } else {
+                            loadList();
+                        }
                     }).addOnFailureListener(e -> {
                         showLoading(false);
                         Snackbar.make(findViewById(android.R.id.content),
@@ -174,3 +228,13 @@ public class AdminInboxActivity extends AppCompatActivity implements PendingExpa
                 : null;
     }
 }
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * End of AdminInboxActivity — TL;DR
+ * ─────────────────────────────────────────────────────────────────────────────
+ * • Loads requests by status (from Intent), caches them, filters client-side, shows list.
+ * • Approve/Reject call repository, show snackbars, and navigate to the new status tab.
+ * • Search matches name/email/role; loading + empty states are handled gracefully.
+ * • Actions require an authenticated admin (checked via FirebaseAuth).
+ */

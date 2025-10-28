@@ -1,7 +1,6 @@
 package com.example.seg2105_project_1_tutor_registration_form.model;
 
 import androidx.annotation.Nullable;
-import com.example.seg2105_project_1_tutor_registration_form.data.RequestStatus;
 
 public class RegRequest {
 
@@ -24,6 +23,12 @@ public class RegRequest {
     private Long decidedAt;
     private Long submittedAt;
     private String reason;
+
+    // in RegRequest.java
+    private String degree;
+    public String getDegree() { return degree; }
+    public void setDegree(String degree) { this.degree = degree; }
+
 
     public RegRequest() {}
 
