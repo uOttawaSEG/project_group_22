@@ -3,51 +3,79 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#fffef0">
 
-    <!-- Content -->
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- Title -->
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/title"
-            android:text="Admin Inbox"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:paddingStart="16dp"
-            android:paddingTop="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="8dp"
+        <!-- Header -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#F1E8C6"
+            app:strokeWidth="1dp"
+            android:foreground="?attr/selectableItemBackground"
+            android:backgroundTint="#fff9dc">
 
-        <!-- Thin divider under title -->
-        <com.google.android.material.divider.MaterialDivider
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <!-- Outlined search box -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/title"
+                    android:text="Admin Inbox"
+                    android:textStyle="bold"
+                    android:textSize="24sp"
+                    android:textColor="#0F172A"
+                    android:fontFamily="@font/codec_pro_regular"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="review and approve requests ✨"
+                    android:textColor="#6B7280"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/codec_pro_regular"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Search pill -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/searchContainer"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.Material3.TextInputLayout.FilledBox.Dense"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginTop="16dp"
-            app:boxBackgroundMode="outline"
-            app:startIconDrawable="@android:drawable/ic_menu_search">
+            android:layout_marginBottom="8dp"
+            app:startIconDrawable="@android:drawable/ic_menu_search"
+            app:boxBackgroundMode="filled"
+            app:boxCornerRadiusTopStart="28dp"
+            app:boxCornerRadiusTopEnd="28dp"
+            app:boxCornerRadiusBottomStart="28dp"
+            app:boxCornerRadiusBottomEnd="28dp"
+            app:boxBackgroundColor="#F6F2FF"
+            app:hintTextColor="@color/m3_ref_palette_neutral_variant60"
+            app:startIconTint="#8B5CF6">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/search"
                 android:hint="search inbox..."
                 android:imeOptions="actionSearch"
                 android:singleLine="true"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
@@ -60,24 +88,45 @@
             android:layout_weight="1"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-            android:paddingTop="16dp"
+            android:paddingTop="10dp"
             android:clipToPadding="false"/>
 
-        <!-- Empty state -->
-        <com.google.android.material.textview.MaterialTextView
+        <!-- Empty state (kept same id) -->
+        <LinearLayout
             android:id="@+id/empty"
-            android:text="No pending requests"
-            android:gravity="center"
-            android:padding="16dp"
             android:visibility="gone"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No pending requests"
+                android:textColor="#0F172A"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:fontFamily="@font/codec_pro_regular"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="check back later ☁️"
+                android:textColor="#6B7280"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp"
+                android:fontFamily="@font/codec_pro_regular"/>
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Centered loading spinner -->
+    <!-- Cute spinner -->
+    <!-- System ProgressBar (fixes 'indeterminate' attr error) -->
     <ProgressBar
         android:id="@+id/progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"/>
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:indeterminate="true"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

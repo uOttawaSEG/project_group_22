@@ -82,7 +82,6 @@ public class Student {
     public void setNotes(String notes) { this.notes = notes; }
 
     public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; } // usually stays "student"
 
     // --- Firestore helpers ---
     public Map<String, Object> toMap() {

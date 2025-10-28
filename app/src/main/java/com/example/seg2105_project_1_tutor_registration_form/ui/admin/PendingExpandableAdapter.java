@@ -11,9 +11,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.model.RegRequest;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpandableAdapter.VH> {
@@ -26,6 +28,9 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
     private final List<RegRequest> items = new ArrayList<>();
     private final Actions actions;
     private final Set<Integer> expanded = new HashSet<>();
+
+    private static final SimpleDateFormat DATE_FMT =
+            new SimpleDateFormat("MMM d, yyyy • h:mm a", Locale.getDefault());
 
     public PendingExpandableAdapter(Actions actions) {
         this.actions = actions;
@@ -87,29 +92,67 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
         }
 
         void bind(RegRequest r, boolean isExpanded) {
+            // Name
             String fullName = (safe(r.getFirstName()) + " " + safe(r.getLastName())).trim();
-            txtName.setText(fullName);
+            txtName.setText(fullName.isEmpty() ? "—" : fullName);
 
-            // role/status are Strings in your model
-            String role   = r.getRole();
-            String status = r.getStatus();
+            // Role (String in your model)
+            String role = safe(r.getRole());
+            txtRole.setText("Role: " + (role.isEmpty() ? "—" : role.toUpperCase(Locale.ROOT)));
 
-            txtRole.setText("Role: " + (role == null || role.isEmpty() ? "—" : role));
-            txtStatus.setText(status == null || status.isEmpty() ? "PENDING" : status);
+            // Status (String) + pill background
+            String status = safe(r.getStatus());
+            String statusUpper = status.isEmpty() ? "PENDING" : status.toUpperCase(Locale.ROOT);
+            txtStatus.setText(statusUpper);
 
-            txtEmail.setText("Email: " + safe(r.getEmail()));
-            txtPhone.setText("Phone: " + safe(r.getPhone()));
-
-            // extra line based on role (String compares)
-            if ("STUDENT".equalsIgnoreCase(role)) {
-                txtExtra.setText("Looking for: " + safe(r.getCoursesWantedSummary()));
-            } else if ("TUTOR".equalsIgnoreCase(role)) {
-                txtExtra.setText("Teaches: " + safe(r.getCoursesOfferedSummary()));
+            if ("APPROVED".equals(statusUpper)) {
+                txtStatus.setBackgroundResource(R.drawable.pill_status_approved);
+            } else if ("REJECTED".equals(statusUpper)) {
+                txtStatus.setBackgroundResource(R.drawable.pill_status_rejected);
             } else {
-                txtExtra.setText("");
+                // default
+                txtStatus.setBackgroundResource(R.drawable.pill_pending);
             }
 
+            // Email / phone lines
+            txtEmail.setText("Email: " + (safe(r.getEmail()).isEmpty() ? "—" : safe(r.getEmail())));
+            txtPhone.setText("Phone: " + (safe(r.getPhone()).isEmpty() ? "—" : safe(r.getPhone())));
+
+            // Extra (multi-line): degree/teaches for tutors OR coursesWanted for students + submitted date
+            StringBuilder extra = new StringBuilder();
+
+            if ("TUTOR".equalsIgnoreCase(role)) {
+                String teaches = safe(r.getCoursesOfferedSummary());
+                String degree  = safe(r.getDegree()); // ok if your model has degree; safe("") if not
+                if (!degree.isEmpty()) extra.append("Degree: ").append(degree);
+                if (!teaches.isEmpty()) {
+                    if (extra.length() > 0) extra.append("\n");
+                    extra.append("Teaches: ").append(teaches);
+                }
+            } else if ("STUDENT".equalsIgnoreCase(role)) {
+                String wants = safe(r.getCoursesWantedSummary());
+                if (!wants.isEmpty()) extra.append("Looking for: ").append(wants);
+            }
+
+            // Submitted date (from Long millis)
+            Long submittedAt = r.getSubmittedAt(); // expecting Long in your model
+            if (submittedAt != null && submittedAt > 0) {
+                String when = DATE_FMT.format(new java.util.Date(submittedAt));
+                if (extra.length() > 0) extra.append("\n");
+                extra.append("Submitted: ").append(when);
+            }
+
+            txtExtra.setText(extra.toString());
+
+            // Expand/collapse
             details.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
+
+            // Disable actions if already decided
+            boolean pending = "PENDING".equals(statusUpper);
+            btnApprove.setEnabled(pending);
+            btnReject.setEnabled(pending);
+            btnApprove.setAlpha(pending ? 1f : 0.5f);
+            btnReject.setAlpha(pending ? 1f : 0.5f);
         }
 
         private static String safe(String s) { return s == null ? "" : s; }

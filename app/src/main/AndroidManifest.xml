@@ -1,9 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────────────────────
+  Mentora — AndroidManifest.xml  (FINALIZED)
+
+  APP FLOW (high level)
+  1) SplashActivity (LAUNCHER)
+       • Checks FirebaseAuth.getCurrentUser().
+       • If logged out  → MainActivity (role picker + login).
+       • If logged in:
+           - If user is ADMIN              → ui.admin.AdminHomeActivity.
+           - If user is STUDENT/TUTOR:
+               · If their request is REJECTED → auth.RejectedScreen (shows reason).
+               · Else (APPROVED/PENDING)     → WelcomeActivity (student/tutor area).
+
+  2) MainActivity
+       • Login + “Register here” routes to the appropriate registration screen.
+
+  3) Registration screens
+       • StudentRegistrationActivity / TutorRegisterActivity create a PENDING
+         document in collection "registrationRequests".
+       • AdminRegistrationActivity lets you create the single admin account.
+
+  4) Admin area
+       • AdminHomeActivity has 4 cards: Inbox (PENDING), Approved, Rejected, Log out.
+       • AdminInboxActivity is reused for the three lists via Intent extra
+         "filter_status" = "PENDING" | "APPROVED" | "REJECTED".
+       • RequestDetailActivity (optional) shows a single request; Approve/Reject
+         update Firestore and the list refreshes.
+
+  IMPORTANT
+  • There is ONE RejectedScreen activity: com.example…auth.RejectedScreen.
+    The old duplicate (in the root package) has been removed.
+  • Only SplashActivity is exported+LAUNCHER. Everything else is non-exported.
+
+  Permissions
+  • INTERNET and ACCESS_NETWORK_STATE are required for Firebase Auth/Firestore.
+
+  Theme
+  • Uses @style/Theme.SEG2105_Project_1_Tutor_Registration_Form.
+
+  ─────────────────────────────────────────────────────────────────────────────
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Needed for Firebase/Auth/Firestore network calls -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- AndroidManifest.xml (top level, outside <application>) -->
+
+    <!-- Firebase / Networking -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application
@@ -14,53 +56,60 @@
         android:label="Mentora"
         android:supportsRtl="true"
         android:theme="@style/Theme.SEG2105_Project_1_Tutor_Registration_Form">
-        <activity
-            android:name=".RejectedScreen"
-            android:exported="false" />
+
         <!-- 1) Launcher: Splash first -->
         <activity
             android:name=".auth.SplashActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity> <!-- 2) Main login screen (opened from Splash) -->
+        </activity>
+
+        <!-- 2) Main login / role picker -->
         <activity
             android:name=".auth.MainActivity"
-            android:exported="false" /> <!-- 3) Registration screens -->
+            android:exported="false"/>
+
+        <!-- 3) Registration screens -->
         <activity
             android:name=".auth.TutorRegisterActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize"/>
         <activity
             android:name=".auth.StudentRegistrationActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize"/>
         <activity
             android:name=".auth.AdminRegistrationActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" /> <!-- 4) Post-auth landing -->
+            android:windowSoftInputMode="adjustResize"/>
+
+        <!-- 4) Post-auth student/tutor landing -->
         <activity
             android:name=".WelcomeActivity"
-            android:exported="false" />
+            android:exported="false"/>
 
-        <!-- Admin home (cards: Inbox / Approved / Rejected / Log out) -->
+        <!-- Admin area -->
         <activity
             android:name=".ui.admin.AdminHomeActivity"
             android:exported="false"
-            android:label="@string/admin_home_title" />
-
+            android:label="@string/admin_home_title"/>
         <activity
             android:name=".ui.admin.AdminInboxActivity"
             android:exported="false"
-            android:label="@string/inbox" />
-
+            android:label="@string/inbox"/>
         <activity
             android:name=".ui.admin.RequestDetailActivity"
-            android:exported="false" />
+            android:exported="false"/>
 
+        <!-- Rejected notice for students/tutors (single, canonical activity) -->
+        <activity
+            android:name=".auth.RejectedScreen"
+            android:exported="false"/>
+
+        <!-- NOTE: Do NOT declare .RejectedScreen (root package) here.
+             The duplicate activity has been removed on purpose. -->
     </application>
-
 </manifest>

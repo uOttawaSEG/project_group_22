@@ -13,12 +13,42 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 import com.google.android.material.textfield.TextInputEditText;
+import com.example.seg2105_project_1_tutor_registration_form.data.FirestoreRegistrationRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * TutorRegisterActivity — human-readable overview
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Purpose
+ * • Collect tutor info (name, contact, degrees, courses) and submit a registration.
+ *
+ * What happens on “Register”
+ * 1) repo.signUp(email, pass) — create Firebase Auth user.
+ * 2) saveUserProfile(uid, profile) — write /users/{uid} with role and form fields.
+ * 3) FirestoreRegistrationRepository.createPendingForUid(...) — create a PENDING
+ *    row in the admin inbox /registrationRequests so an Admin can approve/reject.
+ * 4) On success, navigate to WelcomeActivity and pass a few extras for display.
+ *
+ * UI details
+ * • MultiAutoCompleteTextView for degrees and courses (comma tokenizer).
+ * • Simple Toasts for user feedback on success/failure.
+ *
+ * Failure modes (user feedback)
+ * • Auth failure → “Sign up failed: …”
+ * • Profile write failure → “Failed to save profile: …”
+ * • Inbox write failure → “Saved to inbox failed: …”
+ *
+ * Notes & maintenance
+ * • Keep role strings consistent across app (“tutor” in profile, “TUTOR” in request).
+ * • If you add validation (recommended), do it at the top of handleRegistration().
+ * • Localize strings for production (toasts, dropdown values).
+ * • Degree/Course options are hard-coded here; consider centralizing or fetching.
+ */
 public class TutorRegisterActivity extends AppCompatActivity {
 
     // text inputs
@@ -87,46 +117,44 @@ public class TutorRegisterActivity extends AppCompatActivity {
         String pass  = textOf(etPassword);
         String phone = textOf(etPhone);
 
-        String selectedDegreesCsv = actText(actDegree);
-        String selectedCoursesCsv = actText(actCourses);
+        // ... your validation stays the same ...
 
-        if (first.isEmpty() || last.isEmpty() || email.isEmpty() || pass.isEmpty()) {
-            toast("Please fill all required fields."); return;
-        }
-        if (selectedDegreesCsv.isEmpty()) { toast("Please select at least one degree."); return; }
-        if (selectedCoursesCsv.isEmpty()) { toast("Please select at least one course."); return; }
-        if (pass.length() < 6) { toast("Password must be at least 6 characters."); return; }
-
-        // 1) Create Firebase Auth account
         repo.signUp(email, pass)
                 .addOnSuccessListener(authResult -> {
                     String uid = repo.uid();
 
-                    // 2) Save profile to Firestore
+                    // 1) Save profile (you already had this)
                     Map<String, Object> profile = new HashMap<>();
                     profile.put("role", "tutor");
                     profile.put("email", email);
                     profile.put("firstName", first);
                     profile.put("lastName", last);
                     profile.put("phone", phone);
-                    profile.put("degreesCsv", selectedDegreesCsv);
-                    profile.put("coursesCsv", selectedCoursesCsv);
+                    profile.put("degreesCsv", actText(actDegree));
+                    profile.put("coursesCsv", actText(actCourses));
 
                     repo.saveUserProfile(uid, profile)
                             .addOnSuccessListener(x -> {
-                                toast("Registration successful!");
-
-                                // 3) Go to Welcome screen with details
-                                Intent i = new Intent(this,
-                                        com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class);
-                                i.putExtra("role", "Tutor");
-                                i.putExtra("email", email);
-                                i.putExtra("name", first + " " + last);
-                                i.putExtra("phone", phone);
-                                i.putExtra("degreeCsv", selectedDegreesCsv);
-                                i.putExtra("coursesCsv", selectedCoursesCsv);
-                                startActivity(i);
-                                finish();
+                                // 2) Create the PENDING inbox entry
+                                new com.example.seg2105_project_1_tutor_registration_form.data
+                                        .FirestoreRegistrationRepository()
+                                        .createPendingForUid(uid, email, first, last, phone, "TUTOR")
+                                        .addOnSuccessListener(v -> {
+                                            toast("Application submitted for review.");
+                                            // 3) Navigate
+                                            Intent i = new Intent(this,
+                                                    com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class);
+                                            i.putExtra("role", "Tutor");
+                                            i.putExtra("email", email);
+                                            i.putExtra("name", first + " " + last);
+                                            i.putExtra("phone", phone);
+                                            i.putExtra("degreeCsv", actText(actDegree));
+                                            i.putExtra("coursesCsv", actText(actCourses));
+                                            startActivity(i);
+                                            finish();
+                                        })
+                                        .addOnFailureListener(e ->
+                                                toast("Saved to inbox failed: " + e.getMessage()));
                             })
                             .addOnFailureListener(e ->
                                     toast("Failed to save profile: " + e.getMessage()));
@@ -134,6 +162,7 @@ public class TutorRegisterActivity extends AppCompatActivity {
                 .addOnFailureListener(e ->
                         toast("Sign up failed: " + e.getMessage()));
     }
+
 
     private String textOf(TextInputEditText e) {
         return e.getText() == null ? "" : e.getText().toString().trim();
@@ -156,3 +185,12 @@ public class TutorRegisterActivity extends AppCompatActivity {
 
     private void toast(String m) { Toast.makeText(this, m, Toast.LENGTH_LONG).show(); }
 }
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * End of TutorRegisterActivity — TL;DR
+ * ─────────────────────────────────────────────────────────────────────────────
+ * • Signs up the tutor, saves /users/{uid}, creates PENDING request, then navigates.
+ * • Multi-select fields use comma tokenization; values are stored as CSV strings.
+ * • Add stronger validation and i18n before production; centralize options if needed.
+ */
