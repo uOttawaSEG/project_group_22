@@ -1,5 +1,13 @@
 package com.example.seg2105_project_1_tutor_registration_form.auth;
 
+/*
+ Login & routing entrypoint. Signs users in with Firebase Auth, loads /users/{uid},
+ then checks /registrationRequests to gate access: REJECTED → RejectedScreen,
+ PENDING/unknown → toast only, APPROVED → routes by role (Admin → AdminHome,
+ Tutor → TutorHome, Student/other → Welcome). Also exposes register links per role
+ and a simple password-reset dialog.
+*/
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
@@ -18,48 +26,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentSnapshot;
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * MainActivity (Login & role-based entry point) — human-readable overview
- * ─────────────────────────────────────────────────────────────────────────────
- * What this screen does
- * • Lets a user pick a role (Student / Tutor / Admin), enter email + password,
- *   and log in using Firebase Auth.
- * • After login, it fetches the user profile from /users/{uid} in Firestore and
- *   routes the user *only* through a registration “gate” that checks the
- *   /registrationRequests status (APPROVED / PENDING / REJECTED).
- *
- * Key UI pieces
- * • RadioGroup for role selection (Student / Tutor / Admin)
- * • Email & Password inputs
- * • Login button
- * • “Register” link (navigates to the right registration screen based on role)
- * • “Forgot password?” link (opens dialog, sends Firebase reset email)
- *
- * Why the “gate” matters
- * • Even if Auth succeeds, users shouldn’t proceed until an Admin has approved
- *   their registration. The gate queries /registrationRequests and:
- *   - REJECTED → navigates to RejectedScreen (shows reason if available)
- *   - not APPROVED → shows “pending” toast (no navigation)
- *   - APPROVED → routes to AdminHome or WelcomeActivity
- *
- * Failure modes to expect (and how the UI responds)
- * • Bad email/password → toast “Invalid email/password” and clears password.
- * • Profile doc missing → toast “Profile not found.”
- * • Request status lookup fails → toast “Could not verify request status.”
- * • Request not found → toast “Your registration is pending admin approval.”
- *
- * Security / trust notes
- * • Client-side checks are convenience only; make sure Firestore rules protect
- *   which role can access which path, and that Admin approval is enforced
- *   server-side by security rules or backend logic where possible.
- *
- * Maintenance tips
- * • If you rename roles, update both the RadioButton labels and the string
- *   checks here (e.g., "Student", "Tutor", "Admin/Administrator").
- * • Keep the “gate” routing logic in one place to avoid bypasses.
- * • Localize toast strings if adding i18n.
- */
 public class MainActivity extends AppCompatActivity {
 
     private static final String ROLE_STUDENT = "Student";
@@ -69,13 +35,11 @@ public class MainActivity extends AppCompatActivity {
     private EditText   usernameEditText;
     private EditText   passwordEditText;
     private Button     loginButton;
-    private TextView   tvRegister;   // "Don't have an account? Register here"
-    private TextView   tvForgot;     // "Forgot password?"
-    private AccountManager accountManager; // kept for other flows (e.g., registration screens)
+    private TextView   tvRegister;
+    private TextView   tvForgot;
+    private AccountManager accountManager;
 
     private String currentUserRole;
-
-    // Firebase
     private FirebaseAuth mAuth;
 
     @Override
@@ -83,10 +47,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Firebase
         mAuth = FirebaseAuth.getInstance();
 
-        // Bind views
         roleRadioGroup   = findViewById(R.id.radio_group_role);
         usernameEditText = findViewById(R.id.etEmail);
         passwordEditText = findViewById(R.id.etPassword);
@@ -95,19 +57,15 @@ public class MainActivity extends AppCompatActivity {
         tvForgot         = findViewById(R.id.tvForgot);
         accountManager   = new AccountManager(this);
 
-        // Login
         loginButton.setOnClickListener(v -> handleLogin());
 
-        // “Don’t have an account? Register here”
         tvRegister.setOnClickListener(v -> {
             int checkedId = roleRadioGroup.getCheckedRadioButtonId();
             if (checkedId == -1) {
                 Toast.makeText(this, "Please select a role first.", Toast.LENGTH_SHORT).show();
                 return;
             }
-
             String role = ((RadioButton) findViewById(checkedId)).getText().toString().trim();
-
             if (ROLE_STUDENT.equalsIgnoreCase(role)) {
                 startActivity(new Intent(this, StudentRegistrationActivity.class));
             } else if (ROLE_TUTOR.equalsIgnoreCase(role)) {
@@ -119,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Forgot password (Firebase email reset)
         tvForgot.setOnClickListener(v -> showResetDialog());
     }
 
@@ -132,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
         final android.view.View view = getLayoutInflater().inflate(R.layout.dialog_reset_password, null);
         final TextInputEditText etEmail = view.findViewById(R.id.etResetEmail);
-        final TextInputEditText etNew   = view.findViewById(R.id.etResetNewPassword); // kept in UI; Firebase link sets the new password
+        final TextInputEditText etNew   = view.findViewById(R.id.etResetNewPassword);
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Reset password")
@@ -160,12 +117,6 @@ public class MainActivity extends AppCompatActivity {
         return e.getText() == null ? "" : e.getText().toString().trim();
     }
 
-    /**
-     * Firebase login:
-     *  - Sign in with Auth
-     *  - Fetch /users/{uid} from Firestore
-     *  - Route ONLY through the registration gate
-     */
     private void handleLogin() {
         int selectedRoleId = roleRadioGroup.getCheckedRadioButtonId();
         if (selectedRoleId == -1) {
@@ -203,9 +154,6 @@ public class MainActivity extends AppCompatActivity {
                                     Toast.makeText(this, "Profile not found.", Toast.LENGTH_SHORT).show();
                                     return;
                                 }
-
-                                // ⬇️ Do NOT navigate here anymore.
-                                // ⬇️ Only call the gate to decide (Rejected / Pending / Approved).
                                 String role = doc.getString("role");
                                 gateByRequestStatusAndRoute(uid, role);
                             })
@@ -215,11 +163,7 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    // ---------- Registration gate (with resilient fallback) ----------
     private void gateByRequestStatusAndRoute(String uid, String roleFromProfile) {
-        // ─────────────────────────────────────────────────────────────
-        // Bypass the registration gate entirely for Admin accounts
-        // ─────────────────────────────────────────────────────────────
         if (roleFromProfile != null &&
                 (roleFromProfile.equalsIgnoreCase("admin") ||
                         roleFromProfile.equalsIgnoreCase("administrator"))) {
@@ -230,15 +174,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-        // Fast path: /registrationRequests/{uid}
         db.collection("registrationRequests").document(uid)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc != null && doc.exists()) {
                         handleGateDecision(doc.getString("status"), doc.getString("reason"), roleFromProfile);
                     } else {
-                        // Fallback: some rows may not use UID as document id
                         db.collection("registrationRequests")
                                 .whereEqualTo("userUid", uid)
                                 .limit(1)
@@ -273,17 +214,18 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!"APPROVED".equalsIgnoreCase(status)) {
-            Toast.makeText(this, "Your registration is pending admin approval.",
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Your registration is pending admin approval.", Toast.LENGTH_LONG).show();
             return;
         }
 
-        // Approved → route normally
         if (roleFromProfile != null &&
                 (roleFromProfile.equalsIgnoreCase("admin") ||
                         roleFromProfile.equalsIgnoreCase("administrator"))) {
             startActivity(new Intent(this,
                     com.example.seg2105_project_1_tutor_registration_form.ui.admin.AdminHomeActivity.class));
+        } else if ("tutor".equalsIgnoreCase(roleFromProfile)) {
+            startActivity(new Intent(this,
+                    com.example.seg2105_project_1_tutor_registration_form.ui.tutor.TutorHomeActivity.class));
         } else {
             startActivity(new Intent(this,
                     com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class));
@@ -295,23 +237,3 @@ public class MainActivity extends AppCompatActivity {
         return currentUserRole;
     }
 }
-
-/*
- * ─────────────────────────────────────────────────────────────────────────────
- * End of MainActivity — TL;DR !
- * ─────────────────────────────────────────────────────────────────────────────
- * • Auth first, then Firestore profile, then the “registration gate.”
- * • Gate decides: REJECTED → RejectedScreen; PENDING/unknown → toast; APPROVED → route.
- * • Register link sends users to the correct registration activity based on selected role.
- * • Forgot password triggers Firebase email flow via dialog.
- *
- * Quick test ideas
- * • Wrong password → should show toast and clear password field.
- * • Missing profile doc → should show “Profile not found.”
- * • No request row → should show “pending admin approval.”
- * • Status changes in Firestore → verify each branch routes correctly.
- *
- * Notes
- * • Keep role string comparisons in sync with UI labels and server-side rules.
- * • If adding MFA or email verification, extend handleLogin() before hitting the gate.
- */
