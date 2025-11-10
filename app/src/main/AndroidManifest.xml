@@ -1,46 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ─────────────────────────────────────────────────────────────────────────────
-  Mentora — AndroidManifest.xml  (FINALIZED)
-
-  APP FLOW (high level)
-  1) SplashActivity (LAUNCHER)
-       • Checks FirebaseAuth.getCurrentUser().
-       • If logged out  → MainActivity (role picker + login).
-       • If logged in:
-           - If user is ADMIN              → ui.admin.AdminHomeActivity.
-           - If user is STUDENT/TUTOR:
-               · If their request is REJECTED → auth.RejectedScreen (shows reason).
-               · Else (APPROVED/PENDING)     → WelcomeActivity (student/tutor area).
-
-  2) MainActivity
-       • Login + “Register here” routes to the appropriate registration screen.
-
-  3) Registration screens
-       • StudentRegistrationActivity / TutorRegisterActivity create a PENDING
-         document in collection "registrationRequests".
-       • AdminRegistrationActivity lets you create the single admin account.
-
-  4) Admin area
-       • AdminHomeActivity has 4 cards: Inbox (PENDING), Approved, Rejected, Log out.
-       • AdminInboxActivity is reused for the three lists via Intent extra
-         "filter_status" = "PENDING" | "APPROVED" | "REJECTED".
-       • RequestDetailActivity (optional) shows a single request; Approve/Reject
-         update Firestore and the list refreshes.
-
-  IMPORTANT
-  • There is ONE RejectedScreen activity: com.example…auth.RejectedScreen.
-    The old duplicate (in the root package) has been removed.
-  • Only SplashActivity is exported+LAUNCHER. Everything else is non-exported.
-
-  Permissions
-  • INTERNET and ACCESS_NETWORK_STATE are required for Firebase Auth/Firestore.
-
-  Theme
-  • Uses @style/Theme.SEG2105_Project_1_Tutor_Registration_Form.
-
-  ─────────────────────────────────────────────────────────────────────────────
--->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -104,12 +62,24 @@
             android:name=".ui.admin.RequestDetailActivity"
             android:exported="false"/>
 
-        <!-- Rejected notice for students/tutors (single, canonical activity) -->
+        <!-- Tutor area home (tabs) -->
+        <activity
+            android:name=".ui.tutor.TutorHomeActivity"
+            android:exported="false"
+            android:label="@string/tutor_home_title"/>
+
+        <!-- Rejected notice for students/tutors -->
         <activity
             android:name=".auth.RejectedScreen"
             android:exported="false"/>
+        <!-- AndroidManifest.xml -->
 
-        <!-- NOTE: Do NOT declare .RejectedScreen (root package) here.
-             The duplicate activity has been removed on purpose. -->
+        <activity android:name=".ui.tutor.CreateSlotActivity" />
+
+        <activity
+            android:name=".ui.tutor.SessionDetailActivity"
+            android:exported="false"/>
+
+
     </application>
 </manifest>

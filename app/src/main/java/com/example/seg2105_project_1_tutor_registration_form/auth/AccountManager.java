@@ -11,6 +11,9 @@ import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseReposi
 
 import java.util.HashMap;
 import java.util.List;
+import com.google.android.gms.tasks.Task;          // ✅ correct Task
+import com.google.firebase.auth.AuthResult;        // (optional but nice)
+
 import java.util.Map;
 
 /**

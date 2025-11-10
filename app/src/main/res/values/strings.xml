@@ -25,7 +25,24 @@
     <string name="approve_failed">Approve failed</string>
     <string name="reject_failed">Reject failed</string>
 
+    <!-- Tutor Home -->
+    <string name="tutor_home_title">Tutor Home</string>
+    <string name="tutor_home_subtitle">Manage availability, requests, and sessions.</string>
+    <string name="cta_create_slot">+ Create Slot</string>
+
+    <!-- Tabs -->
+    <string name="tab_availability">Availability</string>
+    <string name="tab_requests">Requests</string>
+    <string name="tab_sessions">Sessions</string>
+
+    <!-- Empty states -->
+    <string name="empty_default">Nothing to show yet.</string>
+    <string name="empty_availability">No availability yet.</string>
+    <string name="empty_requests">No pending requests.</string>
+    <string name="empty_sessions">No sessions to display.</string>
+
     <!-- Reject dialog -->
-    <string name="reject_reason_hint">Reason (optional)</string>
-    <string name="reject_reason_helper">Add a short message for the user (max 140 chars).</string>
+    <string name="reject_reason_helper">Explain briefly why the request was rejected.</string>
+    <string name="reject_reason_hint">Enter rejection reason…</string>
+
 </resources>

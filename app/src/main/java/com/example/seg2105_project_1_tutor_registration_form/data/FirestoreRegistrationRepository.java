@@ -52,17 +52,6 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
     private static final String COL = "registrationRequests";
     private final FirebaseFirestore fs = FirebaseFirestore.getInstance();
 
-    /**
-     * List requests filtered by a given status (PENDING/APPROVED/REJECTED).
-     * Returns a Task that resolves to a List<RegRequest>.
-     *
-     * Implementation notes
-     * • Firestore query is simple whereEqualTo("status", status.name()).
-     * • We map each DocumentSnapshot to RegRequest manually to:
-     *   - normalize role/status to UPPERCASE for the UI
-     *   - tolerate Long or Timestamp for date fields via asMillis(...)
-     * • On any failure or empty result, returns an empty list (not null).
-     */
     @Override
     public Task<List<RegRequest>> listByStatus(RequestStatus status) {
         return fs.collection(COL)
@@ -72,7 +61,6 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
                     List<RegRequest> out = new ArrayList<>();
                     if (!t.isSuccessful() || t.getResult() == null) return out;
                     for (DocumentSnapshot d : t.getResult().getDocuments()) {
-                        // Manual mapping so we can tolerate Long OR Timestamp in Firestore
                         RegRequest r = new RegRequest();
                         r.setId(d.getId());
                         r.setUserUid(asString(d.get("userUid")));
@@ -80,7 +68,7 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
                         r.setLastName(asString(d.get("lastName")));
                         r.setEmail(asString(d.get("email")));
                         r.setPhone(asString(d.get("phone")));
-                        r.setRole(asStringUpper(d.get("role")));      // store as upper for UI
+                        r.setRole(asStringUpper(d.get("role")));
                         r.setStatus(asStringUpper(d.get("status")));
                         r.setCoursesWantedSummary(asString(d.get("coursesWantedSummary")));
                         r.setCoursesOfferedSummary(asString(d.get("coursesOfferedSummary")));
@@ -94,21 +82,6 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
                 });
     }
 
-    /**
-     * Create (or merge/overwrite) a PENDING request document for a given uid.
-     *
-     * Parameters
-     * • uid/email are required. Names/phone are nullable and default to "" for consistency.
-     * • role is normalized to uppercase; defaults to "STUDENT" if null.
-     *
-     * Behavior
-     * • Writes a deterministic doc id (= uid) so lookups are O(1) by uid.
-     * • Stores submittedAt as System.currentTimeMillis() (Long) to avoid Timestamp issues.
-     * • decidedBy/decidedAt are set to null (pending). reason is initialized as empty string.
-     *
-     * Merge semantics
-     * • Uses SetOptions.merge() so future writes can add fields without removing unchanged ones.
-     */
     // Create/overwrite a PENDING request for a uid
     public Task<Void> createPendingForUid(@NonNull String uid,
                                           @NonNull String email,
@@ -119,14 +92,18 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
         Map<String, Object> data = new HashMap<>();
         data.put("id", uid);
         data.put("userUid", uid);
-        data.put("userId", uid); // legacy alias used by some older queries
+        data.put("userId", uid);
         data.put("email", email);
         data.put("firstName", firstName == null ? "" : firstName);
         data.put("lastName",  lastName  == null ? "" : lastName);
         data.put("phone",     phone     == null ? "" : phone);
-        data.put("role", role == null ? "STUDENT" : role.toUpperCase());
+
+        // ⬇️ Only change: normalize role, force uppercase, trim whitespace, and fallback only if blank
+        String roleNorm = (role == null ? "" : role.trim().toUpperCase());
+        if (roleNorm.isEmpty()) roleNorm = "STUDENT";
+        data.put("role", roleNorm);
+
         data.put("status", "PENDING");
-        // ✅ Always store millis (Long) to avoid Timestamp crashes
         data.put("submittedAt", System.currentTimeMillis());
         data.put("decidedBy", null);
         data.put("decidedAt", null);
@@ -137,16 +114,6 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
                 .set(data, SetOptions.merge());
     }
 
-    /**
-     * Ensure a request document exists for a user.
-     * Use this during login to backfill older accounts that never created a request row.
-     *
-     * Flow
-     * • Read /registrationRequests/{uid}.
-     * • If it exists → no-op.
-     * • If not → create a PENDING request with minimal fields via createPendingForUid(...).
-     */
-    // Ensure there is a request doc on login (for old users)
     public Task<Void> ensureRequestExists(@NonNull String uid, @NonNull String email) {
         DocumentReference doc = fs.collection(COL).document(uid);
         return doc.get().continueWithTask(t -> {
@@ -157,14 +124,8 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
         });
     }
 
-    /**
-     * Approve a request.
-     * • Sets status = APPROVED, decidedAt = now (millis), decidedBy = adminUid.
-     * • Removes "reason" field entirely (not just empty string) since it no longer applies.
-     */
     @Override
     public Task<Void> approve(String requestId, String adminUid) {
-        // ✅ Write millis (Long) instead of server Timestamp
         return fs.collection(COL).document(requestId)
                 .update(
                         "status", RequestStatus.APPROVED.name(),
@@ -174,12 +135,6 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
                 );
     }
 
-    /**
-     * Reject a request.
-     * • Sets status = REJECTED, decidedAt = now (millis), decidedBy = adminUid.
-     * • "reason" is stored only if a non-blank value is provided; otherwise delete field.
-     *   This keeps the document clean and conditional logic simple on the client.
-     */
     @Override
     public Task<Void> reject(String requestId, String adminUid, @Nullable String reasonNullable) {
         Object reasonField = (reasonNullable == null || reasonNullable.isBlank())
@@ -189,30 +144,19 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
         return fs.collection(COL).document(requestId)
                 .update(
                         "status", RequestStatus.REJECTED.name(),
-                        "decidedAt", System.currentTimeMillis(),   // ✅ millis
+                        "decidedAt", System.currentTimeMillis(),
                         "decidedBy", adminUid,
                         "reason", reasonField
                 );
     }
 
-    // -------- helpers --------
-
-    /** Safely convert any object to String; returns null for null input. */
     private static String asString(Object o) { return o == null ? null : String.valueOf(o); }
 
-    /** Uppercase string helper with null-safety and trimming. */
     private static String asStringUpper(Object o) {
         String s = asString(o);
         return s == null ? null : s.trim().toUpperCase();
     }
 
-    /**
-     * Convert a Firestore value to epoch millis (Long).
-     * Accepts:
-     * • Number (Long/Integer/Double) → longValue()
-     * • Timestamp → toDate().getTime()
-     * Any other type (or null) returns null to avoid ClassCastExceptions.
-     */
     private static Long asMillis(Object v) {
         if (v == null) return null;
         if (v instanceof Number) return ((Number) v).longValue();
@@ -220,13 +164,3 @@ public class FirestoreRegistrationRepository implements RegistrationRepository {
         return null;
     }
 }
-
-/*
- * ─────────────────────────────────────────────────────────────────────────────
- * End of FirestoreRegistrationRepository — TL;DR
- * ─────────────────────────────────────────────────────────────────────────────
- * • Uses deterministic doc id = uid; stores times as epoch millis (Long).
- * • listByStatus(...) is robust to legacy Timestamp fields.
- * • approve/reject stamp decision metadata; reject optionally keeps a reason.
- * • ensureRequestExists(...) backfills missing rows during user login.
- */

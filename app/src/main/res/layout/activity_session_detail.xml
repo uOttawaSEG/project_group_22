@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+
+        <TextView
+            android:text="Session Details"
+            android:textStyle="bold" android:textSize="20sp"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+        <Space android:layout_width="0dp" android:layout_height="12dp"/>
+
+        <TextView android:text="When" android:textStyle="bold"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <TextView android:id="@+id/tvWhen"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+        <Space android:layout_width="0dp" android:layout_height="8dp"/>
+
+        <TextView android:text="Status" android:textStyle="bold"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <TextView android:id="@+id/tvStatus"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+        <Space android:layout_width="0dp" android:layout_height="8dp"/>
+
+        <TextView android:text="Student" android:textStyle="bold"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <TextView android:id="@+id/tvStudentName"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <TextView android:id="@+id/tvStudentEmail"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+        <Space android:layout_width="0dp" android:layout_height="8dp"/>
+
+        <TextView android:text="Notes" android:textStyle="bold"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <TextView android:id="@+id/tvNotes"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+    </LinearLayout>
+</ScrollView>
