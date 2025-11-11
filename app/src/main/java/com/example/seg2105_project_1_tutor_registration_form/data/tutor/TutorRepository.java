@@ -1,38 +1,75 @@
 package com.example.seg2105_project_1_tutor_registration_form.data.tutor;
 
+import androidx.annotation.NonNull;
+
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
-import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Student;
+import com.example.seg2105_project_1_tutor_registration_form.model.Student;
+import com.example.seg2105_project_1_tutor_registration_form.model.tutor.TutorSummary;
+
 import java.util.List;
 
 public interface TutorRepository {
-    interface SimpleCallback { void onSuccess(); void onError(String msg); }
-    interface SlotCallback { void onSuccess(AvailabilitySlot s); void onError(String msg); }
-    interface SlotsListCallback { void onSuccess(List<AvailabilitySlot> slots); void onError(String msg); }
-    interface RequestsListCallback { void onSuccess(List<SessionRequest> reqs); void onError(String msg); }
-    interface RequestCreateCallback { void onSuccess(String requestId); void onError(String msg); }
-    interface SingleRequestCallback { void onSuccess(SessionRequest r); void onError(String msg); }
-    interface SingleSlotCallback { void onSuccess(AvailabilitySlot s); void onError(String msg); }
-    interface SessionsListCallback { void onSuccess(List<Session> upcoming, List<Session> past); void onError(String msg); }
-    interface SingleSessionCallback { void onSuccess(Session s); void onError(String msg); }
-    interface StudentCallback { void onSuccess(Student s); void onError(String msg); }
 
-    void createAvailabilitySlot(String tutorId, String date, String startTime, boolean requiresApproval, SlotCallback cb);
-    void getAvailabilitySlots(String tutorId, SlotsListCallback cb);
-    void deleteAvailabilitySlot(String tutorId, String slotId, SimpleCallback cb);
+    // ---- Callbacks ----
+    interface SimpleCallback { void onSuccess(); void onError(@NonNull String msg); }
 
-    void getPendingRequests(String tutorId, RequestsListCallback cb);
-    void approveRequest(String tutorId, String requestId, SimpleCallback cb);
-    void rejectRequest(String tutorId, String requestId, SimpleCallback cb);
+    interface SingleSlotCallback { void onSuccess(@NonNull AvailabilitySlot slot); void onError(@NonNull String msg); }
 
-    void getTutorSessions(String tutorId, SessionsListCallback cb);
-    void cancelSession(String tutorId, String sessionId, SimpleCallback cb);
+    interface SlotsListCallback { void onSuccess(@NonNull List<AvailabilitySlot> slots); void onError(@NonNull String msg); }
 
-    void getStudent(String studentId, StudentCallback cb);
-    void submitSessionRequest(String tutorId, String studentId, String slotId, RequestCreateCallback cb);
+    interface RequestsListCallback { void onSuccess(@NonNull List<SessionRequest> requests); void onError(@NonNull String msg); }
 
-    void getRequestById(String tutorId, String requestId, SingleRequestCallback cb);
-    void getSlotById(String tutorId, String slotId, SingleSlotCallback cb);
-    void getSessionById(String tutorId, String sessionId, SingleSessionCallback cb);
+    interface SessionsListCallback { void onSuccess(@NonNull List<Session> sessions); void onError(@NonNull String msg); }
+
+    interface SingleSessionCallback { void onSuccess(@NonNull Session session); void onError(@NonNull String msg); }
+
+    interface StudentCallback { void onSuccess(@NonNull Student student); void onError(@NonNull String msg); }
+
+    interface TutorsListCallback {
+        void onSuccess(java.util.List<TutorSummary> tutors);
+        void onError(String msg);
+    }
+
+    // ---- Availability ----
+    void createAvailabilitySlot(@NonNull String tutorId, @NonNull AvailabilitySlot slot, @NonNull SimpleCallback cb);
+
+    void getAvailabilitySlots(@NonNull String tutorId, @NonNull SlotsListCallback cb);
+
+    void getSlotById(@NonNull String tutorId, @NonNull String slotId, @NonNull SingleSlotCallback cb);
+
+    void deleteAvailabilitySlot(@NonNull String tutorId, @NonNull String slotId, @NonNull SimpleCallback cb);
+
+    // ---- Requests ----
+    void getPendingRequests(@NonNull String tutorId, @NonNull RequestsListCallback cb);
+
+    void approveRequest(@NonNull String tutorId, @NonNull String requestId, @NonNull SimpleCallback cb);
+
+    void rejectRequest(@NonNull String tutorId, @NonNull String requestId, @NonNull SimpleCallback cb);
+
+    // ---- Sessions ----
+    void getTutorSessions(@NonNull String tutorId, @NonNull SessionsListCallback cb);
+
+    void getSessionById(@NonNull String tutorId, @NonNull String sessionId, @NonNull SingleSessionCallback cb);
+
+    // ---- Users ----
+    void getStudent(@NonNull String studentId, @NonNull StudentCallback cb);
+
+    void requestBooking(String tutorId, String slotId, String studentId, SimpleCallback cb);
+
+    void getOpenSlots(@NonNull String tutorId, @NonNull SlotsListCallback cb);
+
+    void requestSession(
+            @NonNull String tutorId,
+            @NonNull String studentId,
+            @NonNull String slotId,
+            boolean requiresApproval,
+            @NonNull SimpleCallback cb
+    );
+
+    /** Tutors that have ≥1 future open slot (startMillis > now). */
+    void listTutorsWithOpenSlots(long nowEpochMillis, TutorsListCallback cb);
+
 }
+

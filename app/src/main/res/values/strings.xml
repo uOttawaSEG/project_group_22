@@ -45,4 +45,18 @@
     <string name="reject_reason_helper">Explain briefly why the request was rejected.</string>
     <string name="reject_reason_hint">Enter rejection reason…</string>
 
+    <string name="add_slot">Add Slot</string>
+
+    <string name="empty_open_slots_student">No open slots to book.</string>
+
+    <string name="student_home_title">Student Home</string>
+
+    <string name="empty_tutor_list">No tutors with open slots right now.</string>
+    <string name="request">Request</string>
+    <string name="book">Book</string>
+
+    <string name="empty_tutors_with_open_slots">
+    No tutors currently have open slots.
+</string>
+
 </resources>
