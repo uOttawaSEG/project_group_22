@@ -1,45 +1,158 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:padding="20dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/mentora_bg"
+    android:padding="16dp">
 
     <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent" android:layout_height="wrap_content">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-        <TextView
-            android:text="Session Details"
-            android:textStyle="bold" android:textSize="20sp"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
 
-        <Space android:layout_width="0dp" android:layout_height="12dp"/>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/mentora_yellow_soft"
+            app:cardCornerRadius="20dp"
+            app:cardUseCompatPadding="true"
+            app:strokeWidth="0dp">
 
-        <TextView android:text="When" android:textStyle="bold"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/tvWhen"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <Space android:layout_width="0dp" android:layout_height="8dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Session Details"
+                    android:textColor="@android:color/black"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-        <TextView android:text="Status" android:textStyle="bold"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/tvStatus"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
 
-        <Space android:layout_width="0dp" android:layout_height="8dp"/>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardUseCompatPadding="true"
+            app:strokeWidth="0dp">
 
-        <TextView android:text="Student" android:textStyle="bold"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/tvStudentName"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/tvStudentEmail"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <Space android:layout_width="0dp" android:layout_height="8dp"/>
 
-        <TextView android:text="Notes" android:textStyle="bold"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/tvNotes"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="When"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWhen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="2025-11-11 Â· 10:00-10:30"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="16dp" />
+
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Status"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="approved"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="16dp" />
+
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Student"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvStudentName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="stu_9"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvStudentEmail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:alpha="0.8"
+                    android:text="stu_9@example.com"
+                    android:textColor="@android:color/black"
+                    android:textSize="12sp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="16dp" />
+
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Notes"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvNotes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Example session notes here."
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp" />
+
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="80dp" />
     </LinearLayout>
 </ScrollView>
