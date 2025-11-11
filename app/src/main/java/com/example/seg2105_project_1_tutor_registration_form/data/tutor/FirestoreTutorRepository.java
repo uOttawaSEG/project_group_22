@@ -1,19 +1,16 @@
 package com.example.seg2105_project_1_tutor_registration_form.data.tutor;
 
-import androidx.annotation.NonNull;
-// Import the following classes for Firestore
+import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
-import com.example.seg2105_project_1_tutor_registration_form.model.Student;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Transaction;
 import com.google.firebase.firestore.WriteBatch;
 
@@ -49,17 +46,17 @@ public class FirestoreTutorRepository implements TutorRepository {
     }
     private long parseMillis(String yMd, String hm) {
         try {
-            return new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).parse(yMd + " " + hm).getTime();
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+                    .parse(yMd + " " + hm).getTime();
         } catch (Exception e) { return 0L; }
     }
-
     private static boolean isHalfHour(String startTime) {
         return startTime.endsWith(":00") || startTime.endsWith(":30");
     }
     private static String add30(String startTime) {
         String[] p = startTime.split(":");
         int m = Integer.parseInt(p[0]) * 60 + Integer.parseInt(p[1]) + 30;
-        return String.format(Locale.US, "%02d:%02d", (m/60)%24, m%60);
+        return String.format(Locale.US, "%02d:%02d", (m/60) % 24, m % 60);
     }
 
     /* ---------- Availability ---------- */
@@ -68,27 +65,34 @@ public class FirestoreTutorRepository implements TutorRepository {
     public void createAvailabilitySlot(String tutorId, String date, String startTime,
                                        boolean requiresApproval, SlotCallback cb) {
         try {
-            if (!isHalfHour(startTime)) { cb.onError("Start time must end with :00 or :30"); return; }
+            if (!isHalfHour(startTime)) { cb.onError("Start must be on :00 or :30"); return; }
+
             String endTime = add30(startTime);
-            String slotId = date + "_" + startTime.replace(":", "");
+            String slotId  = date + "_" + startTime.replace(":", "");
 
             DocumentReference slotRef = slotDoc(tutorId, slotId);
-            // Overlap guard = same date+start = same id
+
+            // Overlap guard = same date+start → same id
             slotRef.get().addOnSuccessListener(s -> {
                 if (s.exists()) { cb.onError("A slot at this time already exists"); return; }
 
                 AvailabilitySlot slot = new AvailabilitySlot(
-                        slotId, tutorId, date, startTime, endTime, requiresApproval, false, null
+                        slotId, tutorId, date, startTime, endTime,
+                        requiresApproval, /*booked=*/false, /*subject=*/null
                 );
-                slotRef.set(slot).addOnSuccessListener(v -> cb.onSuccess(slot))
+
+                slotRef.set(slot)
+                        .addOnSuccessListener(v -> cb.onSuccess(slot))
                         .addOnFailureListener(e -> cb.onError(e.getMessage()));
             }).addOnFailureListener(e -> cb.onError(e.getMessage()));
-        } catch (Exception ex) { cb.onError(ex.getMessage()); }
+        } catch (Exception ex) {
+            cb.onError(ex.getMessage());
+        }
     }
 
     @Override
     public void getAvailabilitySlots(String tutorId, SlotsListCallback cb) {
-        slotsCol(tutorId).get().addOnSuccessListener(snap -> {
+        slotsCol(tutorId).get().addOnSuccessListener((QuerySnapshot snap) -> {
             List<AvailabilitySlot> list = new ArrayList<>();
             for (DocumentSnapshot d : snap) {
                 AvailabilitySlot a = d.toObject(AvailabilitySlot.class);
@@ -123,7 +127,7 @@ public class FirestoreTutorRepository implements TutorRepository {
     public void getPendingRequests(String tutorId, RequestsListCallback cb) {
         reqsCol(tutorId).whereEqualTo("status", "PENDING")
                 .orderBy("requestedAtMillis", Query.Direction.DESCENDING)
-                .get().addOnSuccessListener(snap -> {
+                .get().addOnSuccessListener((QuerySnapshot snap) -> {
                     List<SessionRequest> list = new ArrayList<>();
                     for (DocumentSnapshot d : snap) {
                         SessionRequest r = d.toObject(SessionRequest.class);
@@ -136,11 +140,12 @@ public class FirestoreTutorRepository implements TutorRepository {
     @Override
     public void approveRequest(String tutorId, String requestId, SimpleCallback cb) {
         DocumentReference reqRef = reqDoc(tutorId, requestId);
+
         db.runTransaction((Transaction.Function<Void>) tr -> {
                     DocumentSnapshot rSnap = tr.get(reqRef);
                     if (!rSnap.exists()) throw new RuntimeException("Request not found");
                     SessionRequest r = rSnap.toObject(SessionRequest.class);
-                    if (r == null) throw new RuntimeException("Request parse error");
+                    if (r == null)       throw new RuntimeException("Request parse error");
                     if (!"PENDING".equalsIgnoreCase(r.getStatus()))
                         throw new RuntimeException("Request is not pending");
 
@@ -148,8 +153,9 @@ public class FirestoreTutorRepository implements TutorRepository {
                     DocumentSnapshot sSnap = tr.get(slotRef);
                     if (!sSnap.exists()) throw new RuntimeException("Slot missing");
                     AvailabilitySlot a = sSnap.toObject(AvailabilitySlot.class);
-                    if (a == null) throw new RuntimeException("Slot parse error");
-                    if (a.isBooked()) throw new RuntimeException("Slot already booked");
+                    if (a == null)       throw new RuntimeException("Slot parse error");
+                    if (a.isBooked() && !requestId.equals(sSnap.getString("requestId")))
+                        throw new RuntimeException("Slot already booked");
 
                     String sessionId = a.getId(); // reuse slotId
                     Session session = new Session();
@@ -162,15 +168,16 @@ public class FirestoreTutorRepository implements TutorRepository {
                     session.setDate(a.getDate());
                     session.setStartTime(a.getStartTime());
                     session.setEndTime(a.getEndTime());
-                    session.setSubject(a.getSubject());
+                    session.setSubject(r.getSubject()); // ← use subject from request
                     session.setStatus("UPCOMING");
 
+                    // approve + book + write sessions (tutor & student)
                     tr.update(slotRef, "booked", true);
                     tr.update(reqRef, "status", "APPROVED");
                     tr.set(sessionsCol(tutorId).document(sessionId), session);
-                    // mirror to student
                     tr.set(db.collection("users").document(r.getStudentId())
                             .collection("sessions").document(sessionId), session);
+
                     return null;
                 }).addOnSuccessListener(v -> cb.onSuccess())
                 .addOnFailureListener(e -> cb.onError(e.getMessage()));
@@ -178,8 +185,22 @@ public class FirestoreTutorRepository implements TutorRepository {
 
     @Override
     public void rejectRequest(String tutorId, String requestId, SimpleCallback cb) {
-        reqDoc(tutorId, requestId).update("status", "REJECTED")
-                .addOnSuccessListener(v -> cb.onSuccess())
+        // Ensure we release the held slot if we soft-booked it when the request was created
+        DocumentReference reqRef = reqDoc(tutorId, requestId);
+        db.runTransaction((Transaction.Function<Void>) tr -> {
+                    DocumentSnapshot rSnap = tr.get(reqRef);
+                    if (!rSnap.exists()) throw new RuntimeException("Request not found");
+                    SessionRequest r = rSnap.toObject(SessionRequest.class);
+                    if (r == null)       throw new RuntimeException("Request parse error");
+
+                    tr.update(reqRef, "status", "REJECTED");
+                    // Unbook the slot if it exists
+                    if (r.getSlotId() != null) {
+                        DocumentReference slotRef = slotDoc(tutorId, r.getSlotId());
+                        tr.update(slotRef, "booked", false);
+                    }
+                    return null;
+                }).addOnSuccessListener(v -> cb.onSuccess())
                 .addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
 
@@ -197,7 +218,7 @@ public class FirestoreTutorRepository implements TutorRepository {
 
     @Override
     public void getTutorSessions(String tutorId, SessionsListCallback cb) {
-        sessionsCol(tutorId).get().addOnSuccessListener(snap -> {
+        sessionsCol(tutorId).get().addOnSuccessListener((QuerySnapshot snap) -> {
             List<Session> all = new ArrayList<>();
             for (DocumentSnapshot d : snap) {
                 Session s = d.toObject(Session.class);
@@ -209,8 +230,11 @@ public class FirestoreTutorRepository implements TutorRepository {
                 long t = parseMillis(s.getDate(), s.getStartTime());
                 if (t >= now) upcoming.add(s); else past.add(s);
             }
-            upcoming.sort(Comparator.comparing(Session::getDate).thenComparing(Session::getStartTime));
-            past.sort(Comparator.comparing(Session::getDate).thenComparing(Session::getStartTime).reversed());
+            upcoming.sort(Comparator.comparing(Session::getDate)
+                    .thenComparing(Session::getStartTime));
+            past.sort(Comparator.comparing(Session::getDate)
+                    .thenComparing(Session::getStartTime)
+                    .reversed());
             cb.onSuccess(upcoming, past);
         }).addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
@@ -222,7 +246,7 @@ public class FirestoreTutorRepository implements TutorRepository {
                     DocumentSnapshot sSnap = tr.get(sRef);
                     if (!sSnap.exists()) throw new RuntimeException("Session not found");
                     Session s = sSnap.toObject(Session.class);
-                    if (s == null) throw new RuntimeException("Session parse error");
+                    if (s == null)       throw new RuntimeException("Session parse error");
 
                     tr.update(sRef, "status", "CANCELLED");
                     tr.update(slotDoc(tutorId, s.getSlotId()), "booked", false);
@@ -244,16 +268,13 @@ public class FirestoreTutorRepository implements TutorRepository {
     /* ---------- Student profile ---------- */
 
     @Override
-    // FirestoreTutorRepository#getStudent(...)
     public void getStudent(String studentId, StudentCallback cb) {
         db.collection("users").document(studentId).get()
                 .addOnSuccessListener(d -> {
                     if (!d.exists()) { cb.onError("Student not found"); return; }
 
-                    com.example.seg2105_project_1_tutor_registration_form.model.Student s =
-                            new com.example.seg2105_project_1_tutor_registration_form.model.Student();
-
-                    s.setUid(studentId);  // <— was setId(...)
+                    Student s = new Student();
+                    s.setUid(studentId);
                     s.setFirstName((String) d.get("firstName"));
                     s.setLastName((String) d.get("lastName"));
                     s.setEmail((String) d.get("email"));
@@ -263,11 +284,11 @@ public class FirestoreTutorRepository implements TutorRepository {
                     s.setStudyYear((String) d.get("studyYear"));
 
                     Object courses = d.get("coursesInterested");
-                    if (courses instanceof java.util.List) {
+                    if (courses instanceof List) {
                         //noinspection unchecked
-                        s.setCoursesInterested((java.util.List<String>) courses);
+                        s.setCoursesInterested((List<String>) courses);
                     } else {
-                        s.setCoursesInterested(new java.util.ArrayList<>());
+                        s.setCoursesInterested(new ArrayList<>());
                     }
 
                     s.setNotes((String) d.get("notes"));
@@ -276,17 +297,19 @@ public class FirestoreTutorRepository implements TutorRepository {
                 .addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
 
-
     /* ---------- Student action: submit session request ---------- */
 
     @Override
-    public void submitSessionRequest(String tutorId, String studentId, String slotId, RequestCreateCallback cb) {
+    public void submitSessionRequest(String tutorId, String studentId, String slotId,
+                                     RequestCreateCallback cb) {
+
         DocumentReference slotRef = slotDoc(tutorId, slotId);
+
         slotRef.get().addOnSuccessListener(s -> {
             if (!s.exists()) { cb.onError("Slot not found"); return; }
             AvailabilitySlot a = s.toObject(AvailabilitySlot.class);
-            if (a == null) { cb.onError("Slot parse error"); return; }
-            if (a.isBooked()) { cb.onError("Slot already booked"); return; }
+            if (a == null)     { cb.onError("Slot parse error"); return; }
+            if (a.isBooked())  { cb.onError("Slot already booked"); return; }
 
             String requestId = UUID.randomUUID().toString();
             Map<String, Object> req = new HashMap<>();
@@ -294,23 +317,26 @@ public class FirestoreTutorRepository implements TutorRepository {
             req.put("slotId", slotId);
             req.put("tutorId", tutorId);
             req.put("studentId", studentId);
-            req.put("studentName", null);   // fill in UI if you capture
+            req.put("studentName", null);     // fill from UI if available
             req.put("studentEmail", null);
             req.put("note", null);
             req.put("grade", null);
-            req.put("subject", a.getSubject());
+            req.put("subject", null);         // request carries subject if your UI collects it
+            req.put("date", a.getDate());     // Option A: include time on the request
+            req.put("startTime", a.getStartTime());
+            req.put("endTime", a.getEndTime());
+            req.put("status", a.isRequiresApproval() ? "PENDING" : "APPROVED");
             req.put("requestedAtMillis", FieldValue.serverTimestamp());
 
             if (a.isRequiresApproval()) {
-                req.put("status", "PENDING");
+                // soft hold the slot while pending
                 WriteBatch b = db.batch();
                 b.set(reqsCol(tutorId).document(requestId), req);
-                b.update(slotRef, "booked", true); // soft hold until approve/reject
+                b.update(slotRef, "booked", true);
                 b.commit().addOnSuccessListener(v -> cb.onSuccess(requestId))
                         .addOnFailureListener(e -> cb.onError(e.getMessage()));
             } else {
-                // auto-approve path
-                req.put("status", "APPROVED");
+                // auto-approve → create session immediately
                 String sessionId = a.getId();
                 Session session = new Session();
                 session.setId(sessionId);
@@ -320,17 +346,18 @@ public class FirestoreTutorRepository implements TutorRepository {
                 session.setDate(a.getDate());
                 session.setStartTime(a.getStartTime());
                 session.setEndTime(a.getEndTime());
-                session.setSubject(a.getSubject());
+                session.setSubject(null);
                 session.setStatus("UPCOMING");
 
                 WriteBatch b = db.batch();
                 b.set(reqsCol(tutorId).document(requestId), req);
                 b.set(sessionsCol(tutorId).document(sessionId), session);
+                b.set(db.collection("users").document(studentId)
+                        .collection("sessions").document(sessionId), session);
                 b.update(slotRef, "booked", true);
                 b.commit().addOnSuccessListener(v -> cb.onSuccess(requestId))
                         .addOnFailureListener(e -> cb.onError(e.getMessage()));
             }
         }).addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
-
 }

@@ -45,4 +45,8 @@
     <string name="reject_reason_helper">Explain briefly why the request was rejected.</string>
     <string name="reject_reason_hint">Enter rejection reason…</string>
 
+    <!-- Errors -->
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="no_tutors_found">No tutors found.</string>
+
 </resources>

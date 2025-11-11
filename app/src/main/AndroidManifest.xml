@@ -2,9 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Firebase / Networking -->
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- =========================================================
+         MENTORA — SEG2105 Android Manifest (Finalized)
+         Includes:
+         • Firebase + Internet permissions
+         • Clean role-based sectioning (Admin, Tutor, Student)
+         • All new Student activities for Deliverable 3
+         ========================================================= -->
+
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -15,71 +23,111 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SEG2105_Project_1_Tutor_Registration_Form">
 
-        <!-- 1) Launcher: Splash first -->
+        <!-- ===================== -->
+        <!-- Launcher & Login Flow -->
+        <!-- ===================== -->
+
         <activity
             android:name=".auth.SplashActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- 2) Main login / role picker -->
         <activity
             android:name=".auth.MainActivity"
-            android:exported="false"/>
+            android:exported="false" />
 
-        <!-- 3) Registration screens -->
+        <!-- ===================== -->
+        <!-- Registration Screens -->
+        <!-- ===================== -->
+
         <activity
             android:name=".auth.TutorRegisterActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize"/>
+            android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".auth.StudentRegistrationActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize"/>
+            android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".auth.AdminRegistrationActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize"/>
+            android:windowSoftInputMode="adjustResize" />
 
-        <!-- 4) Post-auth student/tutor landing -->
+        <!-- ===================== -->
+        <!-- Post-login Landing -->
+        <!-- ===================== -->
+
         <activity
             android:name=".WelcomeActivity"
-            android:exported="false"/>
+            android:exported="false" />
 
-        <!-- Admin area -->
+        <!-- ===================== -->
+        <!-- Admin Section -->
+        <!-- ===================== -->
+
         <activity
             android:name=".ui.admin.AdminHomeActivity"
             android:exported="false"
-            android:label="@string/admin_home_title"/>
+            android:label="@string/admin_home_title" />
+
         <activity
             android:name=".ui.admin.AdminInboxActivity"
             android:exported="false"
-            android:label="@string/inbox"/>
+            android:label="@string/inbox" />
+
         <activity
             android:name=".ui.admin.RequestDetailActivity"
-            android:exported="false"/>
+            android:exported="false" />
 
-        <!-- Tutor area home (tabs) -->
+        <!-- ===================== -->
+        <!-- Tutor Section -->
+        <!-- ===================== -->
+
         <activity
             android:name=".ui.tutor.TutorHomeActivity"
             android:exported="false"
-            android:label="@string/tutor_home_title"/>
+            android:label="@string/tutor_home_title" />
 
-        <!-- Rejected notice for students/tutors -->
         <activity
-            android:name=".auth.RejectedScreen"
-            android:exported="false"/>
-        <!-- AndroidManifest.xml -->
-
-        <activity android:name=".ui.tutor.CreateSlotActivity" />
+            android:name=".ui.tutor.CreateSlotActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.tutor.TutorHomeActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.tutor.TutorHomeActivity" />
+        </activity>
 
         <activity
             android:name=".ui.tutor.SessionDetailActivity"
-            android:exported="false"/>
+            android:exported="false" />
 
+        <!-- ===================== -->
+        <!-- Student Section -->
+        <!-- ===================== -->
+
+        <activity
+            android:name=".ui.student.TutorListActivity"
+            android:exported="false"
+            android:label="Tutors" />
+
+        <activity
+            android:name=".ui.student.TutorAvailabilityActivity"
+            android:exported="false"
+            android:label="Tutor Availability" />
+
+        <!-- ===================== -->
+        <!-- Rejected Login Screen -->
+        <!-- ===================== -->
+
+        <activity
+            android:name=".auth.RejectedScreen"
+            android:exported="false" />
 
     </application>
 </manifest>

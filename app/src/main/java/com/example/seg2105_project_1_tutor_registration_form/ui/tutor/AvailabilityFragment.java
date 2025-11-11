@@ -64,11 +64,17 @@ public class AvailabilityFragment extends Fragment {
         adapter = new SlotAdapter();
         list.setAdapter(adapter);
 
-        loadSlots();
+        loadSlots(); // initial load
         return v;
     }
 
-    /** Call this after returning from CreateSlotActivity */
+    /** Auto-refresh every time we return to this tab/screen */
+    @Override public void onResume() {
+        super.onResume();
+        loadSlots();
+    }
+
+    /** Optional external trigger from host activity */
     public void refresh() { loadSlots(); }
 
     private void loadSlots() {
@@ -76,22 +82,24 @@ public class AvailabilityFragment extends Fragment {
         repo.getAvailabilitySlots(tutorId, new TutorRepository.SlotsListCallback() {
             @Override public void onSuccess(List<AvailabilitySlot> slots) {
                 List<SlotRow> rows = new ArrayList<>();
-                for (AvailabilitySlot s : slots) {
-                    rows.add(new SlotRow(
-                            s.getDate(),
-                            s.getStartTime(),
-                            s.getEndTime(),
-                            s.isRequiresApproval(),
-                            s.isBooked(),
-                            s.getSubject()
-                    ));
+                if (slots != null) {
+                    for (AvailabilitySlot s : slots) {
+                        rows.add(new SlotRow(
+                                s.getDate(),
+                                s.getStartTime(),
+                                s.getEndTime(),
+                                s.isRequiresApproval(),
+                                s.isBooked(),
+                                s.getSubject()
+                        ));
+                    }
                 }
                 bindSlots(rows);
                 showLoading(false);
             }
             @Override public void onError(String msg) {
                 showLoading(false);
-                showError(msg);
+                showError(msg != null ? msg : getString(R.string.error_generic));
             }
         });
     }
@@ -107,11 +115,16 @@ public class AvailabilityFragment extends Fragment {
         }
     }
 
-    private void showError(@NonNull String msg) { Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show(); }
+    private void showError(@NonNull String msg) {
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
+    }
 
     private void showLoading(boolean loading) {
         progress.setVisibility(loading ? View.VISIBLE : View.GONE);
-        if (loading) { empty.setVisibility(View.GONE); list.setVisibility(View.GONE); }
+        if (loading) {
+            empty.setVisibility(View.GONE);
+            list.setVisibility(View.GONE);
+        }
     }
 
     /* --- view model for each row --- */
@@ -132,13 +145,16 @@ public class AvailabilityFragment extends Fragment {
                     return a.date.equals(b.date) && a.start.equals(b.start);
                 }
                 @Override public boolean areContentsTheSame(@NonNull SlotRow a, @NonNull SlotRow b) {
-                    return a.end.equals(b.end) && a.requiresApproval == b.requiresApproval
-                            && a.booked == b.booked && ((a.subject==null && b.subject==null) || (a.subject!=null && a.subject.equals(b.subject)));
+                    return a.end.equals(b.end)
+                            && a.requiresApproval == b.requiresApproval
+                            && a.booked == b.booked
+                            && ((a.subject==null && b.subject==null) || (a.subject!=null && a.subject.equals(b.subject)));
                 }
             });
         }
         @NonNull @Override public SlotVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View row = LayoutInflater.from(parent.getContext()).inflate(android.R.layout.simple_list_item_2, parent, false);
+            View row = LayoutInflater.from(parent.getContext())
+                    .inflate(android.R.layout.simple_list_item_2, parent, false);
             return new SlotVH(row);
         }
         @Override public void onBindViewHolder(@NonNull SlotVH h, int position) {
@@ -153,7 +169,8 @@ public class AvailabilityFragment extends Fragment {
 
     private static class SlotVH extends RecyclerView.ViewHolder {
         final TextView title, subtitle;
-        SlotVH(@NonNull View itemView) { super(itemView);
+        SlotVH(@NonNull View itemView) {
+            super(itemView);
             title = itemView.findViewById(android.R.id.text1);
             subtitle = itemView.findViewById(android.R.id.text2);
         }
