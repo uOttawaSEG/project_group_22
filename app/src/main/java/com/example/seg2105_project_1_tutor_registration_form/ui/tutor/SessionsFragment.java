@@ -17,19 +17,17 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
-import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
-import com.example.seg2105_project_1_tutor_registration_form.data.RepoProvider;
-import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Sessions tab: Upcoming (>= now) and Past (< now).
- * Uses fragment_simple_list.xml.
+ * Uses fragment_simple_list.xml. Adapter supports header + item rows.
+ * TODO: Replace loadSessions() with repo.getTutorSessions(...)
  */
 public class SessionsFragment extends Fragment {
 
@@ -43,11 +41,8 @@ public class SessionsFragment extends Fragment {
         return f;
     }
 
-    // --- deps/state ---
-    private final TutorRepository repo = RepoProvider.tutor();
     private String tutorId;
 
-    // --- views ---
     private View progress, empty;
     private RecyclerView list;
     private SessionsAdapter adapter;
@@ -55,72 +50,53 @@ public class SessionsFragment extends Fragment {
     @Override public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         tutorId = getArguments() != null ? getArguments().getString(ARG_TUTOR_ID) : null;
-        if (tutorId == null || tutorId.trim().isEmpty()) {
-            throw new IllegalStateException("SessionsFragment requires tutorId");
-        }
+        if (tutorId == null || tutorId.isEmpty()) throw new IllegalStateException("SessionsFragment requires tutorId");
     }
 
     @Nullable @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_simple_list, container, false);
 
         progress = v.findViewById(R.id.progress);
         empty = v.findViewById(R.id.empty);
-        if (empty instanceof TextView) {
-            ((TextView) empty).setText(R.string.empty_sessions);
-        }
+        if (empty instanceof TextView) ((TextView) empty).setText(R.string.empty_sessions);
+
         list = v.findViewById(R.id.list);
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
-
         adapter = new SessionsAdapter();
         list.setAdapter(adapter);
 
-        loadSessions();
+        loadSessions(); // fake demo now
         return v;
-    }
-
-    @Override public void onResume() {
-        super.onResume();
-        loadSessions();
     }
 
     public void refresh() { loadSessions(); }
 
-    // -------------------- Data loading --------------------
+    // -------------------- Data loading (swap with repo later) --------------------
     private void loadSessions() {
         showLoading(true);
 
-        repo.getTutorSessions(tutorId, new TutorRepository.SessionsListCallback() {
-            @Override public void onSuccess(@NonNull List<Session> sessions) {
-                long now = System.currentTimeMillis();
-                List<SessionRow> upcoming = new ArrayList<>();
-                List<SessionRow> past = new ArrayList<>();
+        // TODO: Replace with:
+        // RepoProvider.tutor().getTutorSessions(tutorId, new TutorRepository.SessionsListCallback() { ... });
 
-                for (Session s : sessions) {
-                    SessionRow row = toRow(s);
-                    long startMs = row.startDateTimeMillis;
-                    if (startMs >= now) upcoming.add(row);
-                    else past.add(row);
-                }
+        list.postDelayed(() -> {
+            // Demo sessions; one upcoming, one past
+            LocalDateTime now = LocalDateTime.now();
+            List<SessionRow> upcoming = new ArrayList<>();
+            List<SessionRow> past = new ArrayList<>();
+            upcoming.add(new SessionRow("sess_up_1", now.plusDays(1), "10:00", "10:30", "stu_9", "approved"));
+            past.add(new SessionRow("sess_past_1", now.minusDays(2), "14:00", "14:30", "stu_7", "canceled"));
 
-                // Sort: upcoming chronological; past reverse-chronological
-                Collections.sort(upcoming, (a, b) -> Long.compare(a.startDateTimeMillis, b.startDateTimeMillis));
-                Collections.sort(past, (a, b) -> Long.compare(b.startDateTimeMillis, a.startDateTimeMillis));
-
-                bind(upcoming, past);
-                showLoading(false);
-            }
-
-            @Override public void onError(@NonNull String msg) {
-                showLoading(false);
-                toast(msg);
-            }
-        });
+            bind(upcoming, past);
+            showLoading(false);
+        }, 250);
     }
 
     private void bind(@NonNull List<SessionRow> upcoming, @NonNull List<SessionRow> past) {
+        // Sort: upcoming chronological; past reverse-chronological
+        Collections.sort(upcoming, (a, b) -> a.startDateTime.compareTo(b.startDateTime));
+        Collections.sort(past, (a, b) -> b.startDateTime.compareTo(a.startDateTime));
+
         List<Row> rows = new ArrayList<>();
         if (!upcoming.isEmpty()) {
             rows.add(Row.header("Upcoming"));
@@ -150,77 +126,39 @@ public class SessionsFragment extends Fragment {
         Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
     }
 
-    // Convert repo Session -> UI row without java.time; use millis.
-    private SessionRow toRow(@NonNull Session s) {
-        long startMs = s.getStartMillis() != null ? s.getStartMillis() : 0L;
-
-        // Prefer the stored ISO date if present; otherwise derive from startMillis.
-        String dateIso = s.getDate();
-        if ((dateIso == null || dateIso.isEmpty()) && startMs > 0) {
-            Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(startMs);
-            int y = c.get(Calendar.YEAR);
-            int m = c.get(Calendar.MONTH) + 1;
-            int d = c.get(Calendar.DAY_OF_MONTH);
-            dateIso = String.format(Locale.US, "%04d-%02d-%02d", y, m, d);
-        }
-
-        return new SessionRow(
-                safe(s.getSessionId()),
-                startMs,
-                safe(dateIso),
-                safe(s.getStartTime()),
-                safe(s.getEndTime()),
-                safe(s.getStudentId()),
-                safe(s.getStatus())
-        );
-    }
-
-    private static String safe(String s) { return s == null ? "" : s; }
-
     // -------------------- Row/View models --------------------
     private static class SessionRow {
         final String id;
-        final long   startDateTimeMillis; // used for split/sort
-        final String dateIso;             // "YYYY-MM-DD" for display
-        final String start;               // "HH:mm"
-        final String end;                 // "HH:mm"
+        final LocalDateTime startDateTime; // date + start combined for easy comparison
+        final String start;                // "HH:mm"
+        final String end;                  // "HH:mm"
         final String studentId;
-        final String status;
-
-        SessionRow(String id,
-                   long startDateTimeMillis,
-                   String dateIso,
-                   String start, String end,
-                   String studentId,
-                   String status) {
+        final String status;               // "approved" | "canceled"
+        SessionRow(String id, LocalDateTime day, String start, String end, String studentId, String status) {
             this.id = id;
-            this.startDateTimeMillis = startDateTimeMillis;
-            this.dateIso = dateIso;
-            this.start = start;
-            this.end = end;
-            this.studentId = studentId;
-            this.status = status;
+            this.startDateTime = LocalDateTime.of(day.getYear(), day.getMonth(), day.getDayOfMonth(),
+                    Integer.parseInt(start.substring(0,2)), Integer.parseInt(start.substring(3,5)));
+            this.start = start; this.end = end; this.studentId = studentId; this.status = status;
         }
     }
 
     private static class Row {
         static final int TYPE_HEADER = 0;
-        static final int TYPE_ITEM   = 1;
+        static final int TYPE_ITEM = 1;
         final int type;
-        final String headerTitle;  // if header
-        final SessionRow item;     // if item
+        final String headerTitle;   // if header
+        final SessionRow item;      // if item
         private Row(int type, String headerTitle, SessionRow item) {
             this.type = type; this.headerTitle = headerTitle; this.item = item;
         }
         static Row header(String title) { return new Row(TYPE_HEADER, title, null); }
-        static Row item(SessionRow s)   { return new Row(TYPE_ITEM, null, s); }
+        static Row item(SessionRow s) { return new Row(TYPE_ITEM, null, s); }
     }
 
-    // -------------------- Adapter (single class) --------------------
+    // -------------------- Adapter with 2 view types --------------------
     private static class SessionsAdapter extends ListAdapter<Row, RecyclerView.ViewHolder> {
         private static final int LAYOUT_HEADER = android.R.layout.simple_list_item_1;
-        private static final int LAYOUT_ITEM   = android.R.layout.simple_list_item_2;
+        private static final int LAYOUT_ITEM = android.R.layout.simple_list_item_2;
 
         SessionsAdapter() {
             super(new DiffUtil.ItemCallback<Row>() {
@@ -259,20 +197,28 @@ public class SessionsFragment extends Fragment {
                 ((HeaderVH) holder).title.setText(r.headerTitle);
             } else if (holder instanceof ItemVH) {
                 SessionRow s = r.item;
-                ((ItemVH) holder).title.setText(s.dateIso + " • " + s.start + "–" + s.end);
+                DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                String dateIso = df.format(s.startDateTime);
+
+                ((ItemVH) holder).title.setText(dateIso + " • " + s.start + "–" + s.end);
                 ((ItemVH) holder).subtitle.setText("Student: " + s.studentId + " • " + s.status);
 
+                // ⇩⇩ OPEN DETAILS ON TAP
                 holder.itemView.setOnClickListener(v -> {
                     Intent i = new Intent(
                             v.getContext(),
                             com.example.seg2105_project_1_tutor_registration_form.ui.tutor.SessionDetailActivity.class
                     );
-                    i.putExtra("when", s.dateIso + " • " + s.start + "–" + s.end);
+
+                    String when = dateIso + " • " + s.start + "–" + s.end;
+
+                    i.putExtra("when", when);
                     i.putExtra("status", s.status);
-                    i.putExtra("studentName", s.studentId);   // placeholder; can enrich later
-                    i.putExtra("studentEmail", "");
-                    i.putExtra("notes", "");
-                    i.putExtra("studentUid", s.studentId);
+                    i.putExtra("studentName", s.studentId);   // test placeholder
+                    i.putExtra("studentEmail", "");            // not available in demo data
+                    i.putExtra("notes", "");                   // not available in demo data
+                    i.putExtra("studentUid", s.studentId);     // reuse id for now
+
                     v.getContext().startActivity(i);
                 });
             }
@@ -292,4 +238,3 @@ public class SessionsFragment extends Fragment {
         }
     }
 }
-

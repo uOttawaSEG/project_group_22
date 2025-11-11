@@ -1,30 +1,56 @@
 package com.example.seg2105_project_1_tutor_registration_form.model;
 
-import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-/**
- * Student profile stored in /users/{uid}.
- * Used when the tutor taps into SessionDetailActivity or Pending Requests.
- */
-public class Student implements Serializable {
+public class Student {
 
-    private String uid;
+    // --- Core identity ---
+    private String uid;          // Firebase Auth UID (or DB id)
     private String firstName;
     private String lastName;
     private String email;
-    private String phone;
+    private String phone;        // optional
 
-    // Optional fields depending on how your student registration form works
-    private String studentId;
-    private String program;
-    private String studyYear;
-    private String notes;
+    // --- Student-specific ---
+    private String studentId;    // e.g., 300xxxxxx
+    private String program;      // e.g., "Bachelor's of Science"
+    private String studyYear;    // e.g., "2nd year"
+    private List<String> coursesInterested; // e.g., ["SEG 2105","CSI 2101"]
+    private String notes;        // optional
 
-    /** Required by Firestore */
-    public Student() {}
+    // --- Meta ---
+    private String role = "student"; // constant
 
-    // --- Getters & Setters ---
+    // Required by Firestore/JSON
+    public Student() { }
 
+    public Student(String uid,
+                   String firstName,
+                   String lastName,
+                   String email,
+                   String phone,
+                   String studentId,
+                   String program,
+                   String studyYear,
+                   List<String> coursesInterested,
+                   String notes) {
+        this.uid = uid;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.phone = phone;
+        this.studentId = studentId;
+        this.program = program;
+        this.studyYear = studyYear;
+        this.coursesInterested = coursesInterested != null ? coursesInterested : new ArrayList<>();
+        this.notes = notes;
+        this.role = "student";
+    }
+
+    // --- Getters/Setters ---
     public String getUid() { return uid; }
     public void setUid(String uid) { this.uid = uid; }
 
@@ -49,13 +75,51 @@ public class Student implements Serializable {
     public String getStudyYear() { return studyYear; }
     public void setStudyYear(String studyYear) { this.studyYear = studyYear; }
 
+    public List<String> getCoursesInterested() { return coursesInterested; }
+    public void setCoursesInterested(List<String> coursesInterested) { this.coursesInterested = coursesInterested; }
+
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
 
-    // --- Convenience for UI ---
-    public String fullName() {
-        String fn = firstName == null ? "" : firstName;
-        String ln = lastName == null ? "" : lastName;
-        return (fn + " " + ln).trim();
+    public String getRole() { return role; }
+
+    // --- Firestore helpers ---
+    public Map<String, Object> toMap() {
+        Map<String, Object> m = new HashMap<>();
+        m.put("uid", uid);
+        m.put("firstName", firstName);
+        m.put("lastName", lastName);
+        m.put("email", email);
+        m.put("phone", phone);
+        m.put("studentId", studentId);
+        m.put("program", program);
+        m.put("studyYear", studyYear);
+        m.put("coursesInterested", coursesInterested);
+        m.put("notes", notes);
+        m.put("role", role);
+        return m;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Student fromMap(Map<String, Object> m) {
+        if (m == null) return null;
+        Student s = new Student();
+        s.uid         = (String) m.get("uid");
+        s.firstName   = (String) m.get("firstName");
+        s.lastName    = (String) m.get("lastName");
+        s.email       = (String) m.get("email");
+        s.phone       = (String) m.get("phone");
+        s.studentId   = (String) m.get("studentId");
+        s.program     = (String) m.get("program");
+        s.studyYear   = (String) m.get("studyYear");
+        Object courses = m.get("coursesInterested");
+        if (courses instanceof List) {
+            s.coursesInterested = (List<String>) courses;
+        } else {
+            s.coursesInterested = new ArrayList<>();
+        }
+        s.notes = (String) m.get("notes");
+        s.role  = (String) m.getOrDefault("role", "student");
+        return s;
     }
 }

@@ -20,8 +20,6 @@ public class WelcomeActivity extends AppCompatActivity {
     private TextView tvUserInfo;
     private Button btnLogout;
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -1,33 +1,28 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.tutor;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.DiffUtil;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.ListAdapter;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.*;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
-import com.example.seg2105_project_1_tutor_registration_form.auth.AuthIdProvider;
-import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
-import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
-import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Requests tab: shows tutor's pending requests.
  * Layout: fragment_simple_list.xml (progress + empty + RecyclerView).
+ *
+ * TODO (swap fake with real):
+ *  - repo.getPendingRequests(tutorId, ...)
+ *  - repo.approveRequest(tutorId, requestId, ...)
+ *  - repo.rejectRequest(tutorId, requestId, ...)
+ *  - (optional) repo.getStudent(r.studentId, ...) for detail subtitle
  */
 public class RequestsFragment extends Fragment {
 
@@ -48,19 +43,10 @@ public class RequestsFragment extends Fragment {
     private RecyclerView list;
     private RequestAdapter adapter;
 
-    // Repo
-    private final TutorRepository repo = new FirestoreTutorRepository();
-
     @Override public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         tutorId = getArguments() != null ? getArguments().getString(ARG_TUTOR_ID) : null;
-        if (tutorId == null || tutorId.trim().isEmpty()) {
-            String fallback = AuthIdProvider.getCurrentUserId();
-            if (fallback == null || fallback.trim().isEmpty()) {
-                throw new IllegalStateException("RequestsFragment requires tutorId");
-            }
-            tutorId = fallback;
-        }
+        if (tutorId == null || tutorId.isEmpty()) throw new IllegalStateException("RequestsFragment requires tutorId");
     }
 
     @Nullable @Override
@@ -76,54 +62,32 @@ public class RequestsFragment extends Fragment {
         adapter = new RequestAdapter(this::showRowMenu);
         list.setAdapter(adapter);
 
-        loadPending();
+        loadPending(); // fake for now
         return v;
-    }
-
-    @Override public void onResume() {
-        super.onResume();
-        loadPending();
     }
 
     /** Call to refresh after approve/reject */
     public void refresh() { loadPending(); }
 
-    // -------------------- Data loading (real repo) --------------------
+    // -------------------- Data loading (fake now; replace with repo) --------------------
     private void loadPending() {
         showLoading(true);
-        repo.getPendingRequests(tutorId, new TutorRepository.RequestsListCallback() {
-            @Override public void onSuccess(List<SessionRequest> reqs) {
-                // Already sorted newest-first in repo; map to rows
-                List<Row> rows = new ArrayList<>();
-                for (SessionRequest r : reqs) {
-                    rows.add(new Row(
-                            safe(r.getRequestId()),
-                            safe(r.getStudentId()),
-                            safe(r.getDate()),
-                            safe(r.getStartTime()),
-                            safe(r.getEndTime()),
-                            r.getRequestedAtMillis() != null ? r.getRequestedAtMillis() : 0L
-                    ));
-                }
-                bind(rows);
-                showLoading(false);
-            }
 
-            @Override public void onError(String message) {
-                showLoading(false);
-                showError(message);
-                bind(new ArrayList<>());
-            }
-        });
+        // TODO: replace with repo.getPendingRequests(tutorId, cb) and sort newest-first
+        list.postDelayed(() -> {
+            List<Row> demo = new ArrayList<>();
+            // newest first
+            demo.add(new Row("req_003", "stu_9", "2025-11-16", "10:30", "11:00", System.currentTimeMillis()));
+            demo.add(new Row("req_002", "stu_7", "2025-11-15", "14:00", "14:30", System.currentTimeMillis() - 60000));
+            bind(demo);
+            showLoading(false);
+        }, 250);
     }
-
-    private static String safe(String s) { return s == null ? "" : s; }
 
     private void bind(@NonNull List<Row> rows) {
         if (rows.isEmpty()) {
             list.setVisibility(View.GONE);
             empty.setVisibility(View.VISIBLE);
-            adapter.submitList(new ArrayList<>());
         } else {
             empty.setVisibility(View.GONE);
             list.setVisibility(View.VISIBLE);
@@ -133,31 +97,22 @@ public class RequestsFragment extends Fragment {
 
     // -------------------- Actions --------------------
     private void approve(String requestId) {
-        showLoading(true);
-        repo.approveRequest(tutorId, requestId, new TutorRepository.SimpleCallback() {
-            @Override public void onSuccess() {
-                toast("Approved");
-                loadPending();         // refresh list
-            }
-            @Override public void onError(String msg) {
-                showLoading(false);
-                showError(msg);
-            }
-        });
+        // TODO: repo.approveRequest(tutorId, requestId, cb)
+        toast("Approved");
+        removeRow(requestId);
     }
 
     private void reject(String requestId) {
-        showLoading(true);
-        repo.rejectRequest(tutorId, requestId, new TutorRepository.SimpleCallback() {
-            @Override public void onSuccess() {
-                toast("Rejected");
-                loadPending();
-            }
-            @Override public void onError(String msg) {
-                showLoading(false);
-                showError(msg);
-            }
-        });
+        // TODO: repo.rejectRequest(tutorId, requestId, cb)
+        toast("Rejected");
+        removeRow(requestId);
+    }
+
+    private void removeRow(String requestId) {
+        List<Row> current = new ArrayList<>(adapter.getCurrentList());
+        current.removeIf(r -> r.requestId.equals(requestId));
+        adapter.submitList(current);
+        if (current.isEmpty()) { list.setVisibility(View.GONE); empty.setVisibility(View.VISIBLE); }
     }
 
     private void showRowMenu(View anchor, Row row) {
@@ -165,8 +120,7 @@ public class RequestsFragment extends Fragment {
         m.getMenu().add("Approve");
         m.getMenu().add("Reject");
         m.setOnMenuItemClickListener(item -> {
-            CharSequence t = item.getTitle();
-            if ("Approve".contentEquals(t)) approve(row.requestId);
+            if ("Approve".contentEquals(item.getTitle())) approve(row.requestId);
             else reject(row.requestId);
             return true;
         });
@@ -178,8 +132,7 @@ public class RequestsFragment extends Fragment {
         if (loading) { empty.setVisibility(View.GONE); list.setVisibility(View.GONE); }
     }
 
-    private void showError(@NonNull String msg) { Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show(); }
-    private void toast(@NonNull String msg) { Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show(); }
+    private void toast(String msg) { Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show(); }
 
     // -------------------- Row model --------------------
     static class Row {
@@ -209,7 +162,7 @@ public class RequestsFragment extends Fragment {
         }
 
         @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // simple 2-line row with a trailing menu (anchored to itemView)
+            // simple 2-line row with a trailing menu button
             View row = LayoutInflater.from(parent.getContext())
                     .inflate(android.R.layout.simple_list_item_2, parent, false);
             return new VH(row);
@@ -219,7 +172,8 @@ public class RequestsFragment extends Fragment {
             Row r = getItem(position);
             String title = r.date + " • " + r.start + "–" + r.end;
             h.title.setText(title);
-            h.subtitle.setText("Request • " + r.studentId); // optionally replace with student name via getStudent(...)
+            h.subtitle.setText("Request • " + r.studentId); // later: replace with getStudent() name/phone
+            // Use the whole row as the “more” anchor for now
             h.itemView.setOnClickListener(v -> onMore.onClick(v, r));
         }
     }
