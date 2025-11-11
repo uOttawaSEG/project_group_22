@@ -11,13 +11,15 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.seg2105_project_1_tutor_registration_form.auth.AuthIdProvider;
+
+import com.example.seg2105_project_1_tutor_registration_form.auth.AuthIdProvider;
+import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
+import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
+import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Locale;
 
 public class CreateSlotActivity extends AppCompatActivity {
 
@@ -25,12 +27,16 @@ public class CreateSlotActivity extends AppCompatActivity {
     private Switch swAutoApprove;
     private Button btnPickDate, btnPickStart, btnPickEnd, btnSave;
 
-    private final Calendar pickedDay = Calendar.getInstance(); // chosen date
-    private int startMin = -1, endMin = -1; // minutes since midnight
+    private final Calendar pickedDay = Calendar.getInstance();
+    private int startMin = -1, endMin = -1;
+
+    private TutorRepository repo;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_slot);
+
+        repo = new FirestoreTutorRepository();
 
         tvDate = findViewById(R.id.tvDate);
         tvStart = findViewById(R.id.tvStart);
@@ -53,16 +59,16 @@ public class CreateSlotActivity extends AppCompatActivity {
             pickedDay.set(Calendar.YEAR, y);
             pickedDay.set(Calendar.MONTH, m);
             pickedDay.set(Calendar.DAY_OF_MONTH, day);
-            tvDate.setText(String.format("%04d-%02d-%02d", y, m + 1, day));
+            tvDate.setText(String.format(Locale.US, "%04d-%02d-%02d", y, m + 1, day));
         }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show();
     }
 
     private void showTimePicker(boolean isStart) {
         TimePickerDialog tpd = new TimePickerDialog(this, (view, h, m) -> {
-            if (m % 30 != 0) { toast("Pick :00 or :30 only"); return; } // 30-min increments
+            if (m % 30 != 0) { toast("Pick :00 or :30 only"); return; }
             int mins = h * 60 + m;
-            if (isStart) { startMin = mins; tvStart.setText(String.format("%02d:%02d", h, m)); }
-            else { endMin = mins; tvEnd.setText(String.format("%02d:%02d", h, m)); }
+            if (isStart) { startMin = mins; tvStart.setText(String.format(Locale.US,"%02d:%02d", h, m)); }
+            else { endMin = mins; tvEnd.setText(String.format(Locale.US,"%02d:%02d", h, m)); }
         }, 9, 0, true);
         tpd.show();
     }
@@ -72,60 +78,38 @@ public class CreateSlotActivity extends AppCompatActivity {
             toast("Pick date, start and end");
             return;
         }
-        if (endMin - startMin != 30) { // exactly 30 minutes
+        if (endMin - startMin != 30) {
             toast("Slot must be exactly 30 minutes");
             return;
         }
 
-        // Build absolute start time (millis) and block past times
+        // block past times
         Calendar startCal = (Calendar) pickedDay.clone();
         startCal.set(Calendar.HOUR_OF_DAY, startMin / 60);
         startCal.set(Calendar.MINUTE, startMin % 60);
         startCal.set(Calendar.SECOND, 0);
         startCal.set(Calendar.MILLISECOND, 0);
-        long startMillis = startCal.getTimeInMillis();
-        if (startMillis <= System.currentTimeMillis()) {
+        if (startCal.getTimeInMillis() <= System.currentTimeMillis()) {
             toast("Start time must be in the future");
             return;
         }
 
-        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        String dayKey = tvDate.getText().toString(); // "YYYY-MM-DD"
+        String tutorId = AuthIdProvider.requireCurrentUserId();
+        String dateStr = tvDate.getText().toString(); // yyyy-MM-dd
+        String startStr = String.format(Locale.US, "%02d:%02d", startMin/60, startMin%60);
+        boolean requiresApproval = !swAutoApprove.isChecked(); // switch = "auto approve"
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("tutors").document(uid)
-                .collection("availabilitySlots")
-                .whereEqualTo("date", dayKey)
-                .get()
-                .addOnSuccessListener(snap -> {
-                    for (DocumentSnapshot d : snap.getDocuments()) {
-                        Long sL = d.getLong("startMin");
-                        Long eL = d.getLong("endMin");
-                        if (sL == null || eL == null) continue;
-                        int s = sL.intValue();
-                        int e = eL.intValue();
-                        if (startMin < e && endMin > s) {
-                            toast("Overlaps an existing slot");
-                            return;
-                        }
+        // delegate creation + endTime computation to the repository
+        repo.createAvailabilitySlot(tutorId, dateStr, startStr, requiresApproval,
+                new TutorRepository.SlotCallback() {
+                    @Override public void onSuccess(AvailabilitySlot s) {
+                        toast("Slot created");
+                        finish(); // returning to fragment triggers refresh()
                     }
-
-                    Map<String, Object> data = new HashMap<>();
-                    data.put("date", dayKey);
-                    data.put("startMin", startMin);
-                    data.put("endMin", endMin);
-                    data.put("startMillis", startMillis);
-                    data.put("manualApproval", !swAutoApprove.isChecked()); // false = auto-approve
-                    data.put("status", "OPEN");
-                    data.put("createdAt", System.currentTimeMillis());
-
-                    db.collection("tutors").document(uid)
-                            .collection("availabilitySlots")
-                            .add(data)
-                            .addOnSuccessListener(r -> { toast("Slot created"); finish(); })
-                            .addOnFailureListener(e -> toast("Save failed: " + e.getMessage()));
-                })
-                .addOnFailureListener(e -> toast("Check failed: " + e.getMessage()));
+                    @Override public void onError(String msg) {
+                        toast(msg);
+                    }
+                });
     }
 
     private void toast(String s) { Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }

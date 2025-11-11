@@ -17,6 +17,9 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
+import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
+import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
+import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,11 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Sessions tab: Upcoming (>= now) and Past (< now).
- * Uses fragment_simple_list.xml. Adapter supports header + item rows.
- * TODO: Replace loadSessions() with repo.getTutorSessions(...)
- */
+/** Tutor “Sessions” tab: upcoming + past. */
 public class SessionsFragment extends Fragment {
 
     private static final String ARG_TUTOR_ID = "tutor_id";
@@ -42,6 +41,7 @@ public class SessionsFragment extends Fragment {
     }
 
     private String tutorId;
+    private TutorRepository repo;
 
     private View progress, empty;
     private RecyclerView list;
@@ -51,6 +51,7 @@ public class SessionsFragment extends Fragment {
         super.onCreate(savedInstanceState);
         tutorId = getArguments() != null ? getArguments().getString(ARG_TUTOR_ID) : null;
         if (tutorId == null || tutorId.isEmpty()) throw new IllegalStateException("SessionsFragment requires tutorId");
+        repo = new FirestoreTutorRepository();
     }
 
     @Nullable @Override
@@ -66,34 +67,67 @@ public class SessionsFragment extends Fragment {
         adapter = new SessionsAdapter();
         list.setAdapter(adapter);
 
-        loadSessions(); // fake demo now
+        loadSessions();
         return v;
     }
 
+    /** Public refresh (host can call this after approval). */
     public void refresh() { loadSessions(); }
 
-    // -------------------- Data loading (swap with repo later) --------------------
+    @Override public void onResume() {
+        super.onResume();
+        // Also refresh when user swipes back to this tab.
+        loadSessions();
+    }
+
     private void loadSessions() {
         showLoading(true);
+        repo.getTutorSessions(tutorId, new TutorRepository.SessionsListCallback() {
+            @Override public void onSuccess(List<Session> up, List<Session> past) {
+                List<SessionRow> upcoming = new ArrayList<>();
+                List<SessionRow> pastRows = new ArrayList<>();
 
-        // TODO: Replace with:
-        // RepoProvider.tutor().getTutorSessions(tutorId, new TutorRepository.SessionsListCallback() { ... });
+                for (Session s : up) {
+                    upcoming.add(new SessionRow(
+                            s.getId(),
+                            combineToLocalDateTime(s.getDate(), s.getStartTime()),
+                            s.getStartTime(),
+                            s.getEndTime(),
+                            s.getStudentId(),
+                            s.getStatus()
+                    ));
+                }
+                for (Session s : past) {
+                    pastRows.add(new SessionRow(
+                            s.getId(),
+                            combineToLocalDateTime(s.getDate(), s.getStartTime()),
+                            s.getStartTime(),
+                            s.getEndTime(),
+                            s.getStudentId(),
+                            s.getStatus()
+                    ));
+                }
 
-        list.postDelayed(() -> {
-            // Demo sessions; one upcoming, one past
-            LocalDateTime now = LocalDateTime.now();
-            List<SessionRow> upcoming = new ArrayList<>();
-            List<SessionRow> past = new ArrayList<>();
-            upcoming.add(new SessionRow("sess_up_1", now.plusDays(1), "10:00", "10:30", "stu_9", "approved"));
-            past.add(new SessionRow("sess_past_1", now.minusDays(2), "14:00", "14:30", "stu_7", "canceled"));
+                bind(upcoming, pastRows);
+                showLoading(false);
+            }
+            @Override public void onError(String msg) {
+                showLoading(false);
+                toast(msg);
+            }
+        });
+    }
 
-            bind(upcoming, past);
-            showLoading(false);
-        }, 250);
+    private static LocalDateTime combineToLocalDateTime(String dateIso, String hhmm) {
+        int y = Integer.parseInt(dateIso.substring(0,4));
+        int mo = Integer.parseInt(dateIso.substring(5,7));
+        int d = Integer.parseInt(dateIso.substring(8,10));
+        int h = Integer.parseInt(hhmm.substring(0,2));
+        int m = Integer.parseInt(hhmm.substring(3,5));
+        return LocalDateTime.of(y, mo, d, h, m);
     }
 
     private void bind(@NonNull List<SessionRow> upcoming, @NonNull List<SessionRow> past) {
-        // Sort: upcoming chronological; past reverse-chronological
         Collections.sort(upcoming, (a, b) -> a.startDateTime.compareTo(b.startDateTime));
         Collections.sort(past, (a, b) -> b.startDateTime.compareTo(a.startDateTime));
 
@@ -122,40 +156,29 @@ public class SessionsFragment extends Fragment {
         if (loading) { empty.setVisibility(View.GONE); list.setVisibility(View.GONE); }
     }
 
-    private void toast(String msg) {
-        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
-    }
+    private void toast(String msg) { Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show(); }
 
-    // -------------------- Row/View models --------------------
+    // ---- row/view models ----
     private static class SessionRow {
         final String id;
-        final LocalDateTime startDateTime; // date + start combined for easy comparison
-        final String start;                // "HH:mm"
-        final String end;                  // "HH:mm"
-        final String studentId;
-        final String status;               // "approved" | "canceled"
+        final LocalDateTime startDateTime;
+        final String start, end, studentId, status;
         SessionRow(String id, LocalDateTime day, String start, String end, String studentId, String status) {
             this.id = id;
-            this.startDateTime = LocalDateTime.of(day.getYear(), day.getMonth(), day.getDayOfMonth(),
-                    Integer.parseInt(start.substring(0,2)), Integer.parseInt(start.substring(3,5)));
+            this.startDateTime = day;
             this.start = start; this.end = end; this.studentId = studentId; this.status = status;
         }
     }
 
     private static class Row {
-        static final int TYPE_HEADER = 0;
-        static final int TYPE_ITEM = 1;
-        final int type;
-        final String headerTitle;   // if header
-        final SessionRow item;      // if item
-        private Row(int type, String headerTitle, SessionRow item) {
-            this.type = type; this.headerTitle = headerTitle; this.item = item;
-        }
+        static final int TYPE_HEADER = 0, TYPE_ITEM = 1;
+        final int type; final String headerTitle; final SessionRow item;
+        private Row(int type, String headerTitle, SessionRow item) { this.type = type; this.headerTitle = headerTitle; this.item = item; }
         static Row header(String title) { return new Row(TYPE_HEADER, title, null); }
         static Row item(SessionRow s) { return new Row(TYPE_ITEM, null, s); }
     }
 
-    // -------------------- Adapter with 2 view types --------------------
+    // ---- adapter with 2 view types ----
     private static class SessionsAdapter extends ListAdapter<Row, RecyclerView.ViewHolder> {
         private static final int LAYOUT_HEADER = android.R.layout.simple_list_item_1;
         private static final int LAYOUT_ITEM = android.R.layout.simple_list_item_2;
@@ -197,28 +220,21 @@ public class SessionsFragment extends Fragment {
                 ((HeaderVH) holder).title.setText(r.headerTitle);
             } else if (holder instanceof ItemVH) {
                 SessionRow s = r.item;
-                DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                String dateIso = df.format(s.startDateTime);
-
+                String dateIso = DateTimeFormatter.ofPattern("yyyy-MM-dd").format(s.startDateTime);
                 ((ItemVH) holder).title.setText(dateIso + " • " + s.start + "–" + s.end);
                 ((ItemVH) holder).subtitle.setText("Student: " + s.studentId + " • " + s.status);
 
-                // ⇩⇩ OPEN DETAILS ON TAP
                 holder.itemView.setOnClickListener(v -> {
                     Intent i = new Intent(
                             v.getContext(),
                             com.example.seg2105_project_1_tutor_registration_form.ui.tutor.SessionDetailActivity.class
                     );
-
-                    String when = dateIso + " • " + s.start + "–" + s.end;
-
-                    i.putExtra("when", when);
+                    i.putExtra("when", dateIso + " • " + s.start + "–" + s.end);
                     i.putExtra("status", s.status);
-                    i.putExtra("studentName", s.studentId);   // test placeholder
-                    i.putExtra("studentEmail", "");            // not available in demo data
-                    i.putExtra("notes", "");                   // not available in demo data
-                    i.putExtra("studentUid", s.studentId);     // reuse id for now
-
+                    i.putExtra("studentName", s.studentId);   // replace with real name via repo.getStudent if desired
+                    i.putExtra("studentEmail", "");
+                    i.putExtra("notes", "");
+                    i.putExtra("studentUid", s.studentId);
                     v.getContext().startActivity(i);
                 });
             }
@@ -230,8 +246,7 @@ public class SessionsFragment extends Fragment {
         }
         static class ItemVH extends RecyclerView.ViewHolder {
             final TextView title, subtitle;
-            ItemVH(@NonNull View itemView) {
-                super(itemView);
+            ItemVH(@NonNull View itemView) { super(itemView);
                 title = itemView.findViewById(android.R.id.text1);
                 subtitle = itemView.findViewById(android.R.id.text2);
             }

@@ -1,17 +1,11 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.tutor;
 
-/*
- Tutor Home screen for signed-in tutors. Enforces an auth guard (redirects to the
- login screen if no user), wires the ViewPager+tabs for Availability/Requests/Sessions,
- and ensures the “Create Slot” button is only visible on the Availability tab and
- opens CreateSlotActivity to add a new 30-minute availability block.
-*/
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
@@ -21,7 +15,10 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-public class TutorHomeActivity extends AppCompatActivity {
+public class TutorHomeActivity extends AppCompatActivity
+        implements RequestsFragment.Host {   // ← implement the callback
+
+    private ViewPager2 pager;                 // ← keep a field so we can find fragments
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,8 +34,9 @@ public class TutorHomeActivity extends AppCompatActivity {
         }
         String tutorId = user.getUid();
 
-        ViewPager2 pager = findViewById(R.id.pager);
-        pager.setAdapter(new TutorHomePagerAdapter(this, tutorId));
+        pager = findViewById(R.id.pager);
+        TutorHomePagerAdapter adapter = new TutorHomePagerAdapter(this, tutorId);
+        pager.setAdapter(adapter);
 
         TabLayout tabs = findViewById(R.id.tabs);
         new TabLayoutMediator(tabs, pager, (tab, pos) -> {
@@ -60,5 +58,22 @@ public class TutorHomeActivity extends AppCompatActivity {
                 startActivity(new Intent(this,
                         com.example.seg2105_project_1_tutor_registration_form.ui.tutor.CreateSlotActivity.class))
         );
+    }
+
+    /** Called by RequestsFragment right after Approve/Reject succeeds. */
+    @Override
+    public void refreshSessionsTab() {
+        if (pager == null || pager.getAdapter() == null) return;
+
+        // ViewPager2 + FragmentStateAdapter store fragments with tags "f" + itemId.
+        long itemId = pager.getAdapter().getItemId(2); // Sessions tab index = 2
+        String tag = "f" + itemId;
+
+        Fragment f = getSupportFragmentManager().findFragmentByTag(tag);
+        if (f instanceof SessionsFragment) {
+            ((SessionsFragment) f).refresh();
+        }
+        // (Optional) auto-switch to Sessions tab so tutor sees the change immediately:
+        // pager.setCurrentItem(2, true);
     }
 }

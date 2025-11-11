@@ -3,7 +3,7 @@ package com.example.seg2105_project_1_tutor_registration_form.data.tutor;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
-import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Student;
+import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 import java.util.List;
 
 public interface TutorRepository {
