@@ -80,9 +80,6 @@
             android:name=".ui.tutor.SessionDetailActivity"
             android:exported="false"/>
 
-        <activity
-            android:name=".ui.student.StudentHomeActivity"
-            android:exported="false"
-            android:label="@string/student_home_title" />
+
     </application>
 </manifest>

@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                     com.example.seg2105_project_1_tutor_registration_form.ui.tutor.TutorHomeActivity.class));
         } else {
             startActivity(new Intent(this,
-                    com.example.seg2105_project_1_tutor_registration_form.ui.student.StudentHomeActivity.class));
+                    com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity.class));
         }
         finish();
     }

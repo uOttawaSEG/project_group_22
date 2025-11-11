@@ -48,5 +48,4 @@
             android:backgroundTint="#FFBF24"
             android:fontFamily="@font/codec_pro_regular"/>
     </LinearLayout>
-
 </ScrollView>
