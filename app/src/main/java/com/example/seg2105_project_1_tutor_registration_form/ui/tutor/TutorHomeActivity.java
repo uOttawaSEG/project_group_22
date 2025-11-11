@@ -1,64 +1,96 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.tutor;
 
-/*
- Tutor Home screen for signed-in tutors. Enforces an auth guard (redirects to the
- login screen if no user), wires the ViewPager+tabs for Availability/Requests/Sessions,
- and ensures the “Create Slot” button is only visible on the Availability tab and
- opens CreateSlotActivity to add a new 30-minute availability block.
-*/
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
+import com.example.seg2105_project_1_tutor_registration_form.auth.AuthIdProvider;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 
 public class TutorHomeActivity extends AppCompatActivity {
 
+    private ViewPager2 pager;                 // <-- matches @+id/pager in XML
+    private TabLayout tabs;                   // <-- @+id/tabs
+    private FloatingActionButton fab;         // <-- @+id/fabAddSlot (optional)
+    private MaterialButton btnCreateSlot;     // <-- @+id/btnCreateSlot (bottom CTA)
+
+    private TutorHomePagerAdapter adapter;
+    private String tutorId;
+
+    private final ActivityResultLauncher<Intent> createSlotLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                // After creating a slot, go back to Availability and refresh
+                pager.setCurrentItem(TutorHomePagerAdapter.INDEX_AVAILABILITY, true);
+                refreshAvailabilityTab();
+            });
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tutor_home);
 
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) {
-            startActivity(new Intent(this,
-                    com.example.seg2105_project_1_tutor_registration_form.auth.MainActivity.class));
+        tutorId = AuthIdProvider.getCurrentUserId();
+        if (tutorId == null || tutorId.trim().isEmpty()) {
+            Toast.makeText(this, "Missing tutor id", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
-        String tutorId = user.getUid();
 
-        ViewPager2 pager = findViewById(R.id.pager);
-        pager.setAdapter(new TutorHomePagerAdapter(this, tutorId));
+        // ---- bind views (ids must match XML) ----
+        pager = findViewById(R.id.pager);              // was R.id.viewPager → fix
+        tabs  = findViewById(R.id.tabs);
+        fab   = findViewById(R.id.fabAddSlot);
+        btnCreateSlot = findViewById(R.id.btnCreateSlot);
 
-        TabLayout tabs = findViewById(R.id.tabs);
-        new TabLayoutMediator(tabs, pager, (tab, pos) -> {
-            switch (pos) {
-                case 0: tab.setText(R.string.tab_availability); break;
-                case 1: tab.setText(R.string.tab_requests); break;
-                case 2: tab.setText(R.string.tab_sessions); break;
+        adapter = new TutorHomePagerAdapter(this, tutorId);
+        pager.setAdapter(adapter);
+
+        new TabLayoutMediator(tabs, pager, (tab, position) -> {
+            switch (position) {
+                case TutorHomePagerAdapter.INDEX_AVAILABILITY: tab.setText("Availability"); break;
+                case TutorHomePagerAdapter.INDEX_REQUESTS:     tab.setText("Requests");     break;
+                case TutorHomePagerAdapter.INDEX_SESSIONS:     tab.setText("Sessions");     break;
             }
         }).attach();
 
-        MaterialButton btnCreate = findViewById(R.id.btnCreateSlot);
+        // Show the FAB only on the Availability tab; button stays always if you want
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int position) {
-                btnCreate.setVisibility(position == 0 ? View.VISIBLE : View.GONE);
+                if (fab != null) {
+                    fab.setVisibility(position == TutorHomePagerAdapter.INDEX_AVAILABILITY
+                            ? View.VISIBLE : View.GONE);
+                }
             }
         });
 
-        btnCreate.setOnClickListener(v ->
-                startActivity(new Intent(this,
-                        com.example.seg2105_project_1_tutor_registration_form.ui.tutor.CreateSlotActivity.class))
-        );
+        View.OnClickListener launchCreate = v -> {
+            Intent i = new Intent(this, CreateSlotActivity.class);
+            createSlotLauncher.launch(i);
+        };
+        if (fab != null) fab.setOnClickListener(launchCreate);
+        if (btnCreateSlot != null) btnCreateSlot.setOnClickListener(launchCreate);
+    }
+
+    private void refreshAvailabilityTab() {
+        final int pos = TutorHomePagerAdapter.INDEX_AVAILABILITY;
+        // Try to find fragment by default ViewPager2 tag "f" + position
+        String tag = "f" + pos;
+        androidx.fragment.app.Fragment f =
+                getSupportFragmentManager().findFragmentByTag(tag);
+        if (f instanceof AvailabilityFragment) {
+            ((AvailabilityFragment) f).refresh();
+        }
+        // If null, it will refresh next time it's recreated; this is safe.
     }
 }

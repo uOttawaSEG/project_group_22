@@ -7,93 +7,102 @@
     android:background="@color/mentora_bg">
 
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/headerCard"
+        android:id="@+id/header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="20dp"
+        app:cardCornerRadius="16dp"
         app:cardUseCompatPadding="true"
         app:cardBackgroundColor="@color/mentora_yellow_soft"
-        app:strokeWidth="0dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="16dp">
+        android:layout_margin="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
-
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/tutor_home_title"
+                android:text="Student Home"
                 android:textStyle="bold"
-                android:textSize="20sp"
-                android:textColor="@android:color/black"/>
-
+                android:textSize="20sp"/>
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/tutor_home_subtitle"
-                android:textSize="14sp"
-                android:alpha="0.8"
-                android:layout_marginTop="4dp"/>
+                android:text="Enter a tutor ID, load open slots, book, and view your sessions."/>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
+
+    <LinearLayout
+        android:id="@+id/filterRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Tutor UID">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTutorId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLoad"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Load"/>
+    </LinearLayout>
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabs"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:tabTextColor="@android:color/black"
-        app:tabSelectedTextColor="@android:color/black"
-        app:layout_constraintTop_toBottomOf="@id/headerCard"
+        app:layout_constraintTop_toBottomOf="@id/filterRow"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="12dp"/>
+        android:layout_marginEnd="8dp"/>
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/pager"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/tabs"
-        app:layout_constraintBottom_toTopOf="@id/btnCreateSlot"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_margin="8dp"/>
 
-    <!-- Keep your bottom CTA button (teams can use this if preferred) -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnCreateSlot"
-        style="@style/Widget.MaterialComponents.Button"
+    <FrameLayout
+        android:id="@+id/student_content"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/cta_create_slot"
-        app:cornerRadius="18dp"
-        android:insetTop="14dp"
-        android:insetBottom="14dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/headerCard"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_margin="12dp"/>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAddSlot"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:contentDescription="@string/add_slot"
-        android:src="@android:drawable/ic_input_add"
-        app:tint="@android:color/white"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvTutors"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/headerCard"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="16dp"
-        android:visibility="visible"/>
+        android:layout_margin="16dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>
