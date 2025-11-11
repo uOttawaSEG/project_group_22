@@ -1,11 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme. -->
-    <style name="Base.Theme.SEG2105_Project_1_Tutor_Registration_Form"
-        parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+    <!-- Base app theme (Material 3). Pick ONE theme name to use everywhere. -->
+    <style name="Theme.Mentora" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Optional edge-to-edge polish -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <style name="Theme.SEG2105_Project_1_Tutor_Registration_Form"
-        parent="Base.Theme.SEG2105_Project_1_Tutor_Registration_Form" />
 </resources>

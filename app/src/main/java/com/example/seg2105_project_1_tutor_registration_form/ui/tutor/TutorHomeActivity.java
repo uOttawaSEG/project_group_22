@@ -16,9 +16,16 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 public class TutorHomeActivity extends AppCompatActivity
-        implements RequestsFragment.Host {   // ← implement the callback
+        implements RequestsFragment.Host {
 
-    private ViewPager2 pager;                 // ← keep a field so we can find fragments
+    private ViewPager2 pager;
+
+    @Override
+    public void onRequestHandled() {
+        // Called after approve/reject in RequestsFragment
+        refreshSessionsTab();            // trigger your refresh
+        // Optional: pager.setCurrentItem(2, true);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,20 +67,14 @@ public class TutorHomeActivity extends AppCompatActivity
         );
     }
 
-    /** Called by RequestsFragment right after Approve/Reject succeeds. */
-    @Override
-    public void refreshSessionsTab() {
+    /** Helper: refresh the Sessions tab fragment if attached. */
+    private void refreshSessionsTab() {      // ❗ no @Override here
         if (pager == null || pager.getAdapter() == null) return;
-
-        // ViewPager2 + FragmentStateAdapter store fragments with tags "f" + itemId.
         long itemId = pager.getAdapter().getItemId(2); // Sessions tab index = 2
         String tag = "f" + itemId;
-
         Fragment f = getSupportFragmentManager().findFragmentByTag(tag);
         if (f instanceof SessionsFragment) {
             ((SessionsFragment) f).refresh();
         }
-        // (Optional) auto-switch to Sessions tab so tutor sees the change immediately:
-        // pager.setCurrentItem(2, true);
     }
 }

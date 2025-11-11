@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -13,7 +14,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
+import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
+import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -28,11 +32,14 @@ import java.util.Locale;
 public class TutorAvailabilityActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
-    private TextView empty, title;
+    private TextView empty, title, headerNameDegree, headerEmail;
     private View progress;
 
-    private String tutorId, tutorName;
+    String tutorId, tutorName; // package-private so inner adapter can read
     private SlotAdapter adapter;
+
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final TutorRepository repo = new FirestoreTutorRepository();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +54,9 @@ public class TutorAvailabilityActivity extends AppCompatActivity {
             title.setText("Availability for " + tutorName);
         }
 
+        headerNameDegree = findViewById(R.id.header_name_degree);
+        headerEmail      = findViewById(R.id.header_email);
+
         recyclerView = findViewById(R.id.recycler);
         progress     = findViewById(R.id.progress);
         empty        = findViewById(R.id.empty);
@@ -55,9 +65,29 @@ public class TutorAvailabilityActivity extends AppCompatActivity {
         adapter = new SlotAdapter(new ArrayList<>());
         recyclerView.setAdapter(adapter);
 
-        loadSlots();
+        loadTutorHeader();  // header: name · degree · email
+        loadSlots();        // list + request button
     }
 
+    /** Loads the header (name · degree · email) */
+    private void loadTutorHeader() {
+        if (tutorId == null) return;
+        db.collection("users").document(tutorId).get()
+                .addOnSuccessListener(doc -> {
+                    String first  = nz(doc.getString("firstName"));
+                    String last   = nz(doc.getString("lastName"));
+                    String degree = nz(doc.getString("degree"));   // adjust key if different in your schema
+                    String email  = nz(doc.getString("email"));
+
+                    String name = (first + " " + last).trim();
+                    if (name.isEmpty()) name = tutorName != null ? tutorName : "(Tutor)";
+
+                    headerNameDegree.setText(degree.isEmpty() ? name : (name + " · " + degree));
+                    headerEmail.setText(email);
+                });
+    }
+
+    /** Loads future, unbooked slots and binds to list */
     private void loadSlots() {
         if (tutorId == null || tutorId.isEmpty()) {
             Toast.makeText(this, "Missing tutor", Toast.LENGTH_SHORT).show();
@@ -66,50 +96,43 @@ public class TutorAvailabilityActivity extends AppCompatActivity {
         }
 
         showLoading(true);
-        FirebaseFirestore.getInstance()
-                .collection("users").document(tutorId)
+        db.collection("users").document(tutorId)
                 .collection("availabilitySlots")
                 .get()
                 .addOnSuccessListener((QuerySnapshot snap) -> {
-                    List<AvailabilitySlot> list = new ArrayList<>();
+                    List<SlotVM> list = new ArrayList<>();
                     long now = System.currentTimeMillis();
 
                     for (DocumentSnapshot d : snap.getDocuments()) {
                         AvailabilitySlot s = d.toObject(AvailabilitySlot.class);
                         if (s == null) continue;
 
-                        // Normalize/defend nulls
                         String date  = nz(s.getDate());
                         String start = nz(s.getStartTime());
-                        if (start.isEmpty()) start = nz(d.getString("start")); // fallback if model uses 'start'
+                        if (start.isEmpty()) start = nz(d.getString("start"));  // fallback if older field name
+                        String end   = s.getEndTime() == null ? nz(d.getString("endTime")) : s.getEndTime();
 
-                        boolean isBooked = s.isBooked(); // default false if boolean primitive; guard if Boolean
+                        boolean booked = s.isBooked();
+                        Boolean reqAppr = d.getBoolean("requiresApproval");
+                        boolean requiresApproval = reqAppr != null && reqAppr;
 
                         long when = parseMillis(date, start);
-                        if (!isBooked && when >= now) {
-                            // Ensure endTime is present on UI
-                            if (s.getEndTime() == null) {
-                                s.setEndTime(nz(d.getString("endTime")));
-                            }
-                            list.add(s);
+                        if (!booked && when >= now) {
+                            list.add(new SlotVM(d.getId(), date, start, end, requiresApproval));
                         }
                     }
 
-                    // sort by date then time
+                    // Sort by date then start time
                     Collections.sort(list, Comparator
-                            .comparing(AvailabilitySlot::getDate, String::compareTo)
-                            .thenComparing(AvailabilitySlot::getStartTime, String::compareTo));
+                            .comparing((SlotVM vm) -> vm.date)
+                            .thenComparing(vm -> vm.start));
 
                     adapter.setSlots(list);
                     showLoading(false);
 
-                    if (list.isEmpty()) {
-                        empty.setVisibility(View.VISIBLE);
-                        recyclerView.setVisibility(View.GONE);
-                    } else {
-                        empty.setVisibility(View.GONE);
-                        recyclerView.setVisibility(View.VISIBLE);
-                    }
+                    boolean isEmpty = list.isEmpty();
+                    empty.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+                    recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
                 })
                 .addOnFailureListener(e -> {
                     showLoading(false);
@@ -132,46 +155,71 @@ public class TutorAvailabilityActivity extends AppCompatActivity {
         } catch (Exception e) { return 0L; }
     }
 
-    /* ------------------ Adapter ------------------ */
-    static class SlotAdapter extends RecyclerView.Adapter<SlotAdapter.VH> {
-        private List<AvailabilitySlot> slots;
-
-        SlotAdapter(List<AvailabilitySlot> slots) {
-            this.slots = slots;
+    /** Lightweight view model that includes the Firestore doc id */
+    static class SlotVM {
+        final String id, date, start, end;
+        final boolean requiresApproval;
+        SlotVM(String id, String date, String start, String end, boolean requiresApproval) {
+            this.id = id; this.date = date; this.start = start; this.end = end; this.requiresApproval = requiresApproval;
         }
+    }
 
-        void setSlots(List<AvailabilitySlot> newSlots) {
-            this.slots = newSlots;
-            notifyDataSetChanged();
-        }
+    /** Adapter that inflates our custom row WITH the "Request session" button */
+    class SlotAdapter extends RecyclerView.Adapter<SlotAdapter.VH> {
+        private List<SlotVM> slots;
+        SlotAdapter(List<SlotVM> slots) { this.slots = slots; }
+        void setSlots(List<SlotVM> newSlots) { this.slots = newSlots; notifyDataSetChanged(); }
 
-        @NonNull
-        @Override
+        @NonNull @Override
         public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext())
-                    .inflate(android.R.layout.simple_list_item_2, parent, false);
+                    .inflate(R.layout.item_slot_row, parent, false); // <-- custom row (title, subtitle, button)
             return new VH(v);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull VH holder, int position) {
-            AvailabilitySlot s = slots.get(position);
-            String end = s.getEndTime() == null ? "" : s.getEndTime();
-            holder.title.setText(s.getDate() + " • " + s.getStartTime() + (end.isEmpty() ? "" : ("–" + end)));
-            holder.subtitle.setText(s.isBooked() ? "Booked" : "Available");
+        public void onBindViewHolder(@NonNull VH h, int pos) {
+            SlotVM s = slots.get(pos);
+            h.title.setText(s.date + " • " + s.start + (s.end.isEmpty() ? "" : ("–" + s.end)));
+            h.subtitle.setText(s.requiresApproval ? "manual approval · open" : "auto-approve · open");
+
+            h.btn.setEnabled(true);
+            h.btn.setText("Request session");
+            h.btn.setOnClickListener(v -> {
+                String studentId = FirebaseAuth.getInstance().getUid();
+                if (studentId == null) {
+                    Toast.makeText(TutorAvailabilityActivity.this, "Please sign in again.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                h.btn.setEnabled(false);
+                h.btn.setText("Requesting…");
+
+                repo.submitSessionRequest(
+                        tutorId, studentId, s.id,
+                        new TutorRepository.RequestCreateCallback() {
+                            @Override public void onSuccess(String requestId) {
+                                Toast.makeText(TutorAvailabilityActivity.this, "Request sent", Toast.LENGTH_SHORT).show();
+                                h.btn.setText("Requested");
+                            }
+                            @Override public void onError(String msg) {
+                                Toast.makeText(TutorAvailabilityActivity.this, msg, Toast.LENGTH_SHORT).show();
+                                h.btn.setEnabled(true);
+                                h.btn.setText("Request session");
+                            }
+                        }
+                );
+            });
         }
 
-        @Override
-        public int getItemCount() {
-            return slots.size();
-        }
+        @Override public int getItemCount() { return slots.size(); }
 
-        static class VH extends RecyclerView.ViewHolder {
-            TextView title, subtitle;
+        class VH extends RecyclerView.ViewHolder {
+            TextView title, subtitle; Button btn;
             VH(@NonNull View v) {
                 super(v);
-                title = v.findViewById(android.R.id.text1);
-                subtitle = v.findViewById(android.R.id.text2);
+                title    = v.findViewById(R.id.slot_title);
+                subtitle = v.findViewById(R.id.slot_subtitle);
+                btn      = v.findViewById(R.id.btn_request);
             }
         }
     }

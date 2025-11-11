@@ -38,23 +38,23 @@ android {
 
 dependencies {
     implementation(libs.appcompat)
-    implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
 
-    // UI libs you’re using
+    // Keep ONE material dependency:
+    implementation(libs.material) // <- if your version catalog is Material 1.12.0
+    // implementation("com.google.android.material:material:1.12.0") // <- use this instead if not using libs.material
+
     implementation("androidx.recyclerview:recyclerview:1.3.2")
-    implementation("androidx.gridlayout:gridlayout:1.0.0")      // for Admin Home grid
+    implementation("androidx.gridlayout:gridlayout:1.0.0")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
-    implementation("com.google.android.material:material:1.12.0")
 
-    // Tests
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
-
-    // Firebase (BoM controls versions)
+    // Firebase BOM
     implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.ext.junit)
+    androidTestImplementation(libs.espresso.core)
 }

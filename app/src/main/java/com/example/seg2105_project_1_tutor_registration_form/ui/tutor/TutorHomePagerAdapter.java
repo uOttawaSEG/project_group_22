@@ -1,4 +1,3 @@
-
 package com.example.seg2105_project_1_tutor_registration_form.ui.tutor;
 
 import androidx.annotation.NonNull;
@@ -8,6 +7,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class TutorHomePagerAdapter extends FragmentStateAdapter {
 
+    private static final int PAGE_COUNT = 3; // Availability | Requests | Sessions
     private final String tutorId;
 
     public TutorHomePagerAdapter(@NonNull FragmentActivity activity, @NonNull String tutorId) {
@@ -22,12 +22,12 @@ public class TutorHomePagerAdapter extends FragmentStateAdapter {
             case 0: return AvailabilityFragment.newInstance(tutorId);
             case 1: return RequestsFragment.newInstance(tutorId);
             case 2: return SessionsFragment.newInstance(tutorId);
-            default: throw new IllegalArgumentException("Invalid page index: " + position);
+            default: return AvailabilityFragment.newInstance(tutorId);
         }
     }
 
     @Override
     public int getItemCount() {
-        return 3; // Availability | Requests | Sessions
+        return PAGE_COUNT;
     }
 }

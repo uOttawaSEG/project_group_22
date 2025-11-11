@@ -21,8 +21,7 @@
         android:icon="@drawable/mentora_app_logo"
         android:label="Mentora"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SEG2105_Project_1_Tutor_Registration_Form">
-
+        android:theme="@style/Theme.Mentora">
         <!-- ===================== -->
         <!-- Launcher & Login Flow -->
         <!-- ===================== -->

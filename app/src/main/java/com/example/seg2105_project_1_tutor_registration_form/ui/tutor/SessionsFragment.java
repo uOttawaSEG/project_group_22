@@ -20,6 +20,7 @@ import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
+import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,7 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Tutor “Sessions” tab: upcoming + past. */
+/** Tutor “Sessions” tab: Upcoming + Past. */
 public class SessionsFragment extends Fragment {
 
     private static final String ARG_TUTOR_ID = "tutor_id";
@@ -50,7 +51,8 @@ public class SessionsFragment extends Fragment {
     @Override public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         tutorId = getArguments() != null ? getArguments().getString(ARG_TUTOR_ID) : null;
-        if (tutorId == null || tutorId.isEmpty()) throw new IllegalStateException("SessionsFragment requires tutorId");
+        if (tutorId == null || tutorId.isEmpty())
+            throw new IllegalStateException("SessionsFragment requires tutorId");
         repo = new FirestoreTutorRepository();
     }
 
@@ -64,19 +66,18 @@ public class SessionsFragment extends Fragment {
 
         list = v.findViewById(R.id.list);
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new SessionsAdapter();
+        adapter = new SessionsAdapter(repo);
         list.setAdapter(adapter);
 
         loadSessions();
         return v;
     }
 
-    /** Public refresh (host can call this after approval). */
+    /** External refresh (host can call after approvals). */
     public void refresh() { loadSessions(); }
 
     @Override public void onResume() {
         super.onResume();
-        // Also refresh when user swipes back to this tab.
         loadSessions();
     }
 
@@ -89,22 +90,22 @@ public class SessionsFragment extends Fragment {
 
                 for (Session s : up) {
                     upcoming.add(new SessionRow(
-                            s.getId(),
+                            nz(s.getId()),
                             combineToLocalDateTime(s.getDate(), s.getStartTime()),
-                            s.getStartTime(),
-                            s.getEndTime(),
-                            s.getStudentId(),
-                            s.getStatus()
+                            nz(s.getStartTime()),
+                            nz(s.getEndTime()),
+                            nz(s.getStudentId()),
+                            nz(s.getStatus())
                     ));
                 }
                 for (Session s : past) {
                     pastRows.add(new SessionRow(
-                            s.getId(),
+                            nz(s.getId()),
                             combineToLocalDateTime(s.getDate(), s.getStartTime()),
-                            s.getStartTime(),
-                            s.getEndTime(),
-                            s.getStudentId(),
-                            s.getStatus()
+                            nz(s.getStartTime()),
+                            nz(s.getEndTime()),
+                            nz(s.getStudentId()),
+                            nz(s.getStatus())
                     ));
                 }
 
@@ -113,7 +114,7 @@ public class SessionsFragment extends Fragment {
             }
             @Override public void onError(String msg) {
                 showLoading(false);
-                toast(msg);
+                toast(msg != null ? msg : getString(R.string.error_generic));
             }
         });
     }
@@ -157,15 +158,15 @@ public class SessionsFragment extends Fragment {
     }
 
     private void toast(String msg) { Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show(); }
+    private static String nz(String s) { return s == null ? "" : s; }
 
-    // ---- row/view models ----
+    // ---------- view models ----------
     private static class SessionRow {
         final String id;
         final LocalDateTime startDateTime;
         final String start, end, studentId, status;
         SessionRow(String id, LocalDateTime day, String start, String end, String studentId, String status) {
-            this.id = id;
-            this.startDateTime = day;
+            this.id = id; this.startDateTime = day;
             this.start = start; this.end = end; this.studentId = studentId; this.status = status;
         }
     }
@@ -178,12 +179,14 @@ public class SessionsFragment extends Fragment {
         static Row item(SessionRow s) { return new Row(TYPE_ITEM, null, s); }
     }
 
-    // ---- adapter with 2 view types ----
+    // ---------- adapter (fetches student name for subtitle) ----------
     private static class SessionsAdapter extends ListAdapter<Row, RecyclerView.ViewHolder> {
         private static final int LAYOUT_HEADER = android.R.layout.simple_list_item_1;
-        private static final int LAYOUT_ITEM = android.R.layout.simple_list_item_2;
+        private static final int LAYOUT_ITEM   = android.R.layout.simple_list_item_2;
 
-        SessionsAdapter() {
+        private final TutorRepository repo;
+
+        SessionsAdapter(TutorRepository repo) {
             super(new DiffUtil.ItemCallback<Row>() {
                 @Override public boolean areItemsTheSame(@NonNull Row a, @NonNull Row b) {
                     if (a.type != b.type) return false;
@@ -197,6 +200,7 @@ public class SessionsFragment extends Fragment {
                     return x.start.equals(y.start) && x.end.equals(y.end) && x.status.equals(y.status);
                 }
             });
+            this.repo = repo;
         }
 
         @Override public int getItemViewType(int position) { return getItem(position).type; }
@@ -218,26 +222,40 @@ public class SessionsFragment extends Fragment {
             Row r = getItem(position);
             if (holder instanceof HeaderVH) {
                 ((HeaderVH) holder).title.setText(r.headerTitle);
-            } else if (holder instanceof ItemVH) {
-                SessionRow s = r.item;
-                String dateIso = DateTimeFormatter.ofPattern("yyyy-MM-dd").format(s.startDateTime);
-                ((ItemVH) holder).title.setText(dateIso + " • " + s.start + "–" + s.end);
-                ((ItemVH) holder).subtitle.setText("Student: " + s.studentId + " • " + s.status);
-
-                holder.itemView.setOnClickListener(v -> {
-                    Intent i = new Intent(
-                            v.getContext(),
-                            com.example.seg2105_project_1_tutor_registration_form.ui.tutor.SessionDetailActivity.class
-                    );
-                    i.putExtra("when", dateIso + " • " + s.start + "–" + s.end);
-                    i.putExtra("status", s.status);
-                    i.putExtra("studentName", s.studentId);   // replace with real name via repo.getStudent if desired
-                    i.putExtra("studentEmail", "");
-                    i.putExtra("notes", "");
-                    i.putExtra("studentUid", s.studentId);
-                    v.getContext().startActivity(i);
-                });
+                return;
             }
+
+            ItemVH h = (ItemVH) holder;
+            SessionRow s = r.item;
+
+            String dateIso = DateTimeFormatter.ofPattern("yyyy-MM-dd").format(s.startDateTime);
+            h.title.setText(dateIso + " • " + s.start + "–" + s.end);
+
+            // default subtitle with UID while we fetch name
+            h.subtitle.setText("Student: " + s.studentId + " • " + s.status);
+
+            final int bindPos = holder.getBindingAdapterPosition();
+            repo.getStudent(s.studentId, new TutorRepository.StudentCallback() {
+                @Override public void onSuccess(Student st) {
+                    if (bindPos != holder.getBindingAdapterPosition() || st == null) return;
+                    String full = (nz(st.getFirstName()) + " " + nz(st.getLastName())).trim();
+                    if (full.isEmpty()) full = nz(st.getEmail());
+                    if (full.isEmpty()) full = s.studentId;
+                    h.subtitle.setText("Student: " + full + " • " + s.status);
+                }
+                @Override public void onError(String msg) { /* keep UID */ }
+            });
+
+            holder.itemView.setOnClickListener(v -> {
+                Intent i = new Intent(
+                        v.getContext(),
+                        com.example.seg2105_project_1_tutor_registration_form.ui.tutor.SessionDetailActivity.class
+                );
+                i.putExtra("when", dateIso + " • " + s.start + "–" + s.end);
+                i.putExtra("status", s.status);
+                i.putExtra("studentUid", s.studentId);
+                v.getContext().startActivity(i);
+            });
         }
 
         static class HeaderVH extends RecyclerView.ViewHolder {
@@ -246,10 +264,13 @@ public class SessionsFragment extends Fragment {
         }
         static class ItemVH extends RecyclerView.ViewHolder {
             final TextView title, subtitle;
-            ItemVH(@NonNull View itemView) { super(itemView);
-                title = itemView.findViewById(android.R.id.text1);
+            ItemVH(@NonNull View itemView) {
+                super(itemView);
+                title    = itemView.findViewById(android.R.id.text1);
                 subtitle = itemView.findViewById(android.R.id.text2);
             }
         }
+
+        private static String nz(String s) { return s == null ? "" : s; }
     }
 }

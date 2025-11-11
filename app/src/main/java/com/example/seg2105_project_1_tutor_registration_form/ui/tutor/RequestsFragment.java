@@ -1,38 +1,36 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.tutor;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
-import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
+import com.example.seg2105_project_1_tutor_registration_form.model.Student; // adjust if your Student class lives elsewhere
+import com.google.android.material.button.MaterialButton;
+import com.google.firebase.Timestamp;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
-/** Tutor “Requests” tab: pending requests newest-first, approve/reject actions. */
 public class RequestsFragment extends Fragment {
 
-    public interface Host {
-        /** Optional: host can refresh the Sessions tab right away after approve/reject. */
-        void refreshSessionsTab();
-    }
-
+    /* ---------- factory & args ---------- */
     private static final String ARG_TUTOR_ID = "tutor_id";
 
     public static RequestsFragment newInstance(@NonNull String tutorId) {
@@ -43,199 +41,236 @@ public class RequestsFragment extends Fragment {
         return f;
     }
 
+    /* ---------- state ---------- */
     private String tutorId;
     private TutorRepository repo;
 
+    /* ---------- views ---------- */
     private View progress, empty;
     private RecyclerView list;
-    private RequestAdapter adapter;
+    private RequestsAdapter adapter;
 
-    @Override public void onCreate(@Nullable Bundle savedInstanceState) {
+    /* ---------- optional host callbacks ---------- */
+    public interface Host { void onRequestHandled(); }
+    private Host host;
+
+    @Override public void onAttach(@NonNull Context ctx) {
+        super.onAttach(ctx);
+        if (ctx instanceof Host) host = (Host) ctx;
+    }
+    @Override public void onDetach() {
+        super.onDetach();
+        host = null;
+    }
+
+    /* ---------- lifecycle ---------- */
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        tutorId = getArguments() != null ? getArguments().getString(ARG_TUTOR_ID) : null;
-        if (tutorId == null || tutorId.isEmpty()) throw new IllegalStateException("RequestsFragment requires tutorId");
+        Bundle args = getArguments();
+        tutorId = (args != null) ? args.getString(ARG_TUTOR_ID) : null;
+        if (tutorId == null || tutorId.trim().isEmpty()) {
+            throw new IllegalStateException("RequestsFragment requires tutorId");
+        }
         repo = new FirestoreTutorRepository();
     }
 
-    @Nullable @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        // Must contain: progress, empty, list
         View v = inflater.inflate(R.layout.fragment_simple_list, container, false);
 
         progress = v.findViewById(R.id.progress);
         empty = v.findViewById(R.id.empty);
-        if (empty instanceof TextView) ((TextView) empty).setText(R.string.empty_requests);
+        if (empty instanceof TextView) ((TextView) empty).setText("No pending requests.");
 
         list = v.findViewById(R.id.list);
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new RequestAdapter(this::showRowMenu);
+        adapter = new RequestsAdapter();
         list.setAdapter(adapter);
 
-        loadPending();
+        load();
         return v;
     }
 
-    /** Call to refresh (e.g., pull-to-refresh or returning to tab). */
-    public void refresh() { loadPending(); }
+    @Override public void onResume() {
+        super.onResume();
+        load(); // refresh when returning to tab
+    }
 
-    private void loadPending() {
+    /* ---------- data ---------- */
+    private void load() {
         showLoading(true);
         repo.getPendingRequests(tutorId, new TutorRepository.RequestsListCallback() {
             @Override public void onSuccess(List<SessionRequest> reqs) {
-                List<Row> rows = new ArrayList<>();
-                // If your SessionRequest doesn’t carry date/start/end, fetch slot to display time.
-                // We’ll try to use fields directly, else fall back to slot lookup.
-                if (reqs.isEmpty()) {
-                    bind(rows);
-                    showLoading(false);
-                    return;
-                }
-                final int[] remaining = { reqs.size() };
-                for (SessionRequest r : reqs) {
-                    String date = safe(r.getDate());
-                    String start = safe(r.getStartTime());
-                    String end = safe(r.getEndTime());
-                    if (!date.isEmpty() && !start.isEmpty() && !end.isEmpty()) {
-                        rows.add(new Row(r.getId(), r.getStudentId(), date, start, end,
-                                r.getRequestedAtMillis()!=null ? r.getRequestedAtMillis().toDate().getTime() : System.currentTimeMillis()));
-                        if (--remaining[0] == 0) { bind(rows); showLoading(false); }
-                    } else {
-                        // hydrate from slot
-                        repo.getSlotById(tutorId, r.getSlotId(), new TutorRepository.SingleSlotCallback() {
-                            @Override public void onSuccess(AvailabilitySlot s) {
-                                rows.add(new Row(r.getId(), r.getStudentId(), s.getDate(), s.getStartTime(), s.getEndTime(),
-                                        r.getRequestedAtMillis()!=null ? r.getRequestedAtMillis().toDate().getTime() : System.currentTimeMillis()));
-                                if (--remaining[0] == 0) { bind(rows); showLoading(false); }
-                            }
-                            @Override public void onError(String msg) {
-                                // still show a row with minimal info
-                                rows.add(new Row(r.getId(), r.getStudentId(), "—", "—", "—",
-                                        System.currentTimeMillis()));
-                                if (--remaining[0] == 0) { bind(rows); showLoading(false); }
-                            }
-                        });
+                List<SessionRequest> data = (reqs == null) ? new ArrayList<>() : reqs;
+                if (data.isEmpty()) { bind(new ArrayList<>()); return; }
+
+                final int[] remaining = { data.size() };
+                for (SessionRequest r : data) {
+                    // already have a name
+                    if (!safe(r.getStudentName()).isEmpty()) {
+                        if (--remaining[0] == 0) bind(data);
+                        continue;
                     }
+                    String sid = safe(r.getStudentId());
+                    if (sid.isEmpty()) {
+                        if (--remaining[0] == 0) bind(data);
+                        continue;
+                    }
+                    repo.getStudent(sid, new TutorRepository.StudentCallback() {
+                        @Override public void onSuccess(Student s) {
+                            if (s != null) {
+                                String fn = safe(s.getFirstName());
+                                String ln = safe(s.getLastName());
+                                r.setStudentName((fn + " " + ln).trim());
+                            }
+                            if (--remaining[0] == 0) bind(data);
+                        }
+                        @Override public void onError(String msg) {
+                            if (--remaining[0] == 0) bind(data);
+                        }
+                    });
                 }
             }
+
             @Override public void onError(String msg) {
                 showLoading(false);
-                toast(msg);
+                Toast.makeText(requireContext(), (msg == null ? "Failed to load" : msg),
+                        Toast.LENGTH_SHORT).show();
+                bind(new ArrayList<>());
             }
         });
     }
 
-    private static String safe(String s) { return s == null ? "" : s; }
-
-    private void bind(@NonNull List<Row> rows) {
-        if (rows.isEmpty()) {
+    private void bind(List<SessionRequest> data) {
+        showLoading(false);
+        if (data.isEmpty()) {
             list.setVisibility(View.GONE);
             empty.setVisibility(View.VISIBLE);
         } else {
             empty.setVisibility(View.GONE);
             list.setVisibility(View.VISIBLE);
-            // repo already returns newest-first; if you want, sort here by requestedAtMillis desc.
-            adapter.submitList(rows);
+            adapter.setItems(data);
         }
-    }
-
-    // ---- Actions ----
-    private void approve(String requestId) {
-        repo.approveRequest(tutorId, requestId, new TutorRepository.SimpleCallback() {
-            @Override public void onSuccess() {
-                toast("Approved");
-                removeRow(requestId);
-                notifyHostRefreshSessions();
-            }
-            @Override public void onError(String msg) { toast(msg); }
-        });
-    }
-
-    private void reject(String requestId) {
-        repo.rejectRequest(tutorId, requestId, new TutorRepository.SimpleCallback() {
-            @Override public void onSuccess() {
-                toast("Rejected");
-                removeRow(requestId);
-                // Sessions list may not change on reject, but safe to refresh if host wants.
-                notifyHostRefreshSessions();
-            }
-            @Override public void onError(String msg) { toast(msg); }
-        });
-    }
-
-    private void notifyHostRefreshSessions() {
-        if (getActivity() instanceof Host) {
-            ((Host) getActivity()).refreshSessionsTab();
-        }
-    }
-
-    private void removeRow(String requestId) {
-        List<Row> current = new ArrayList<>(adapter.getCurrentList());
-        current.removeIf(r -> r.requestId.equals(requestId));
-        adapter.submitList(current);
-        if (current.isEmpty()) { list.setVisibility(View.GONE); empty.setVisibility(View.VISIBLE); }
-    }
-
-    private void showRowMenu(View anchor, Row row) {
-        PopupMenu m = new PopupMenu(requireContext(), anchor);
-        m.getMenu().add("Approve");
-        m.getMenu().add("Reject");
-        m.setOnMenuItemClickListener(item -> {
-            if ("Approve".contentEquals(item.getTitle())) approve(row.requestId);
-            else reject(row.requestId);
-            return true;
-        });
-        m.show();
     }
 
     private void showLoading(boolean loading) {
-        progress.setVisibility(loading ? View.VISIBLE : View.GONE);
-        if (loading) { empty.setVisibility(View.GONE); list.setVisibility(View.GONE); }
-    }
-
-    private void toast(String msg) { Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show(); }
-
-    // ---- Row model & adapter ----
-    static class Row {
-        final String requestId, studentId, date, start, end;
-        final long requestedAtMillis;
-        Row(String requestId, String studentId, String date, String start, String end, long at) {
-            this.requestId = requestId; this.studentId = studentId;
-            this.date = date; this.start = start; this.end = end; this.requestedAtMillis = at;
+        if (progress != null) progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+        if (loading) {
+            if (list != null) list.setVisibility(View.GONE);
+            if (empty != null) empty.setVisibility(View.GONE);
         }
     }
 
-    private static class RequestAdapter extends ListAdapter<Row, VH> {
-        interface OnMoreClick { void onClick(View anchor, Row row); }
-        private final OnMoreClick onMore;
+    private void toast(String s) {
+        Toast.makeText(requireContext(), s, Toast.LENGTH_SHORT).show();
+    }
 
-        RequestAdapter(OnMoreClick onMore) {
-            super(new DiffUtil.ItemCallback<Row>() {
-                @Override public boolean areItemsTheSame(@NonNull Row a, @NonNull Row b) { return a.requestId.equals(b.requestId); }
-                @Override public boolean areContentsTheSame(@NonNull Row a, @NonNull Row b) {
-                    return a.date.equals(b.date) && a.start.equals(b.start) && a.end.equals(b.end);
-                }
+    private static String safe(String s){ return s == null ? "" : s; }
+
+    private static String formatWhenLine(SessionRequest r) {
+        String subject = safe(r.getSubject());
+        String grade = safe(r.getGrade());
+
+        String fromMeta = "";
+        if (!grade.isEmpty()) fromMeta = grade;
+        if (!subject.isEmpty()) fromMeta = fromMeta.isEmpty() ? subject : (fromMeta + " • " + subject);
+
+        try {
+            Timestamp ts = r.getRequestedAtMillis(); // ok if null
+            if (ts != null) {
+                Date d = ts.toDate();
+                String when = DateFormat.getDateTimeInstance(
+                        DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault()).format(d);
+                return fromMeta.isEmpty() ? ("Requested " + when) : (fromMeta + " • " + when);
+            }
+        } catch (Throwable ignored) { }
+        return fromMeta.isEmpty() ? "Request" : fromMeta;
+    }
+
+    /* ---------- adapter ---------- */
+    class RequestsAdapter extends RecyclerView.Adapter<ReqVH> {
+        private final List<SessionRequest> items = new ArrayList<>();
+
+        void setItems(List<SessionRequest> newItems) {
+            items.clear();
+            if (newItems != null) items.addAll(newItems);
+            notifyDataSetChanged();
+        }
+
+        @NonNull @Override public ReqVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // Must contain: tvWhen, tvStudent, btnApprove, btnReject
+            View row = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_request_row, parent, false);
+            return new ReqVH(row);
+        }
+
+        @Override public void onBindViewHolder(@NonNull ReqVH h, int pos) {
+            SessionRequest r = items.get(pos);
+
+            h.when.setText(formatWhenLine(r));
+            String name = safe(r.getStudentName());
+            h.student.setText("Student: " + (name.isEmpty() ? "—" : name));
+
+            h.approve.setOnClickListener(v -> {
+                String id = safe(r.getId());
+                if (id.isEmpty()) { toast("Missing request id"); return; }
+                h.approve.setEnabled(false); h.reject.setEnabled(false);
+                repo.approveRequest(tutorId, id, new TutorRepository.SimpleCallback() {
+                    @Override public void onSuccess() {
+                        toast("Approved");
+                        int p = getBindingAdapterPositionSafe(h, pos);
+                        if (p != -1) { items.remove(p); notifyItemRemoved(p); }
+                        if (items.isEmpty()) bind(new ArrayList<>());
+                        if (host != null) host.onRequestHandled();
+                    }
+                    @Override public void onError(String msg) {
+                        toast(msg == null ? "Failed to approve" : msg);
+                        h.approve.setEnabled(true); h.reject.setEnabled(true);
+                    }
+                });
             });
-            this.onMore = onMore;
+
+            h.reject.setOnClickListener(v -> {
+                String id = safe(r.getId());
+                if (id.isEmpty()) { toast("Missing request id"); return; }
+                h.approve.setEnabled(false); h.reject.setEnabled(false);
+                repo.rejectRequest(tutorId, id, new TutorRepository.SimpleCallback() {
+                    @Override public void onSuccess() {
+                        toast("Rejected");
+                        int p = getBindingAdapterPositionSafe(h, pos);
+                        if (p != -1) { items.remove(p); notifyItemRemoved(p); }
+                        if (items.isEmpty()) bind(new ArrayList<>());
+                        if (host != null) host.onRequestHandled();
+                    }
+                    @Override public void onError(String msg) {
+                        toast(msg == null ? "Failed to reject" : msg);
+                        h.approve.setEnabled(true); h.reject.setEnabled(true);
+                    }
+                });
+            });
         }
 
-        @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View row = LayoutInflater.from(parent.getContext()).inflate(android.R.layout.simple_list_item_2, parent, false);
-            return new VH(row);
-        }
+        @Override public int getItemCount() { return items.size(); }
 
-        @Override public void onBindViewHolder(@NonNull VH h, int position) {
-            Row r = getItem(position);
-            h.title.setText(r.date + " • " + r.start + "–" + r.end);
-            h.subtitle.setText("Request • " + r.studentId); // can be hydrated with getStudent(...)
-            h.itemView.setOnClickListener(v -> onMore.onClick(v, r)); // whole row opens menu
+        private int getBindingAdapterPositionSafe(@NonNull RecyclerView.ViewHolder vh, int fallback) {
+            int p = vh.getBindingAdapterPosition();
+            return (p == RecyclerView.NO_POSITION) ? fallback : p;
         }
     }
 
-    private static class VH extends RecyclerView.ViewHolder {
-        final TextView title, subtitle;
-        VH(@NonNull View itemView) {
-            super(itemView);
-            title = itemView.findViewById(android.R.id.text1);
-            subtitle = itemView.findViewById(android.R.id.text2);
+    static class ReqVH extends RecyclerView.ViewHolder {
+        final TextView when, student;
+        final MaterialButton approve, reject;
+        ReqVH(@NonNull View v) {
+            super(v);
+            when = v.findViewById(R.id.tvWhen);
+            student = v.findViewById(R.id.tvStudent);
+            approve = v.findViewById(R.id.btnApprove);
+            reject = v.findViewById(R.id.btnReject);
         }
     }
 }
