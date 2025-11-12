@@ -29,6 +29,36 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+/*
+* TutorAvailabilityActivity (Student -> View tutor availability)
+*
+* PURPOSE
+*   Include a tutor's header: Name • Degree • Email.
+* *- List only FUTURE, UNBOOKED 30-min slots.*
+* – The logged-in student may request a session.
+In this regard, the signed-in
+*
+* FLOW
+* onCreate(): Retrieve tutorId/name, initialize views, RecyclerView, and execute loadTutorHeader() + loadSlots().
+*   loadTutorHeader() -> users/{tutorId} -> first/last
+* – `loadSlots()`: users
+*      · Map to AvailabilitySlot, accept legacy “start”/“endTime”.
+*      · Keep if !booked and start >= now; sort by date, then by start.
+*      · Bind to adapter, toggle empty/progress.
+* Adapter: displays “YYYY-MM-DD • HH:mm–HH:mm” and mode of approval; button press:
+*   repo.submitSessionRequest(tutorId, studentId, slotId, cb), which is disabled during
+*
+* DATA / LAYOUTS
+* – Firestore: users/{tutorId},
+*   (date,.startTime, end.time, requires, .booked)
+* - Layouts: activity_tutor_availability
+*
+* NOTES
+* – Button text: “Requesting…”, if sending, “Requested” if successful, “re-enable” if an error occurs.
+* - Extend by filtering (subject/location) or paging if lists grow.
+*/
+
+
 public class TutorAvailabilityActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
