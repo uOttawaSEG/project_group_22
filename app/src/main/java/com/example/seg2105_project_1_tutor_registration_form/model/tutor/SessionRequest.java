@@ -1,12 +1,9 @@
 package com.example.seg2105_project_1_tutor_registration_form.model.tutor;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.PropertyName;
 
-/**
- * SessionRequest
- * Represents a booking request for a specific availability slot.
- * Now includes date/start/end so UI can display time without slot lookup.
- */
+/** Represents a booking request for a specific availability slot. */
 public class SessionRequest {
 
     private String id;
@@ -18,15 +15,17 @@ public class SessionRequest {
     private String note;
     private String grade;
     private String subject;
-    private String status;                 // PENDING, APPROVED, REJECTED
-    private Timestamp requestedAtMillis;   // when the request was created
+    private String status;   // "pending", "approved", "rejected"
 
-    // NEW: time carried on the request itself
-    private String date;       // e.g., "2025-11-15"
-    private String startTime;  // e.g., "14:00"
-    private String endTime;    // e.g., "14:30"
+    // ---- Time fields ----
+    // Store ONE timestamp in Java; map it to Firestore key "requestedAtMillis"
+    private Timestamp requestedAt;   // canonical in Java
 
-    // Required empty constructor for Firestore
+    // Optional: time carried on the request to avoid slot lookup
+    private String date;       // "yyyy-MM-dd"
+    private String startTime;  // "HH:mm"
+    private String endTime;    // "HH:mm"
+
     public SessionRequest() {}
 
     // ---- IDs & parties ----
@@ -61,21 +60,29 @@ public class SessionRequest {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public Timestamp getRequestedAtMillis() { return requestedAtMillis; }
-    public void setRequestedAtMillis(Timestamp requestedAtMillis) { this.requestedAtMillis = requestedAtMillis; }
+    // ---- Timestamp mapping ----
+    // Your fragment calls getRequestedAtMillis(); keep that name.
+    public Timestamp getRequestedAtMillis() { return requestedAt; }
 
-    // ---- NEW: date/time on the request ----
+    // Bind to Firestore field named "requestedAtMillis"
+    @PropertyName("requestedAtMillis")
+    public void setRequestedAt(Timestamp t) { this.requestedAt = t; }
+
+    @PropertyName("requestedAtMillis")
+    public Timestamp getRequestedAt() { return requestedAt; }
+
+    // ---- Date/time convenience (keeps both legacy and explicit names) ----
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
 
-    // Keep legacy names used in your UI code:
+    // Legacy names used in some UI
     public String getStart() { return startTime; }
     public void setStart(String start) { this.startTime = start; }
 
     public String getEnd() { return endTime; }
     public void setEnd(String end) { this.endTime = end; }
 
-    // Optional additional getters/setters if you prefer explicit names elsewhere:
+    // Explicit names
     public String getStartTime() { return startTime; }
     public void setStartTime(String startTime) { this.startTime = startTime; }
 

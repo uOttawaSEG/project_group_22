@@ -51,8 +51,8 @@ public class SessionsFragment extends Fragment {
     @Override public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         tutorId = getArguments() != null ? getArguments().getString(ARG_TUTOR_ID) : null;
-        if (tutorId == null || tutorId.isEmpty())
-            throw new IllegalStateException("SessionsFragment requires tutorId");
+        // ✅ Do NOT crash if the system recreates the fragment without args yet
+        if (tutorId == null) tutorId = "";
         repo = new FirestoreTutorRepository();
     }
 
@@ -82,6 +82,14 @@ public class SessionsFragment extends Fragment {
     }
 
     private void loadSessions() {
+        // ✅ Guard: if tutorId isn't ready yet, show empty safely
+        if (tutorId.isEmpty()) {
+            progress.setVisibility(View.GONE);
+            list.setVisibility(View.GONE);
+            empty.setVisibility(View.VISIBLE);
+            return;
+        }
+
         showLoading(true);
         repo.getTutorSessions(tutorId, new TutorRepository.SessionsListCallback() {
             @Override public void onSuccess(List<Session> up, List<Session> past) {
@@ -91,7 +99,7 @@ public class SessionsFragment extends Fragment {
                 for (Session s : up) {
                     upcoming.add(new SessionRow(
                             nz(s.getId()),
-                            combineToLocalDateTime(s.getDate(), s.getStartTime()),
+                            safeCombineToLocalDateTime(s.getDate(), s.getStartTime()),
                             nz(s.getStartTime()),
                             nz(s.getEndTime()),
                             nz(s.getStudentId()),
@@ -101,7 +109,7 @@ public class SessionsFragment extends Fragment {
                 for (Session s : past) {
                     pastRows.add(new SessionRow(
                             nz(s.getId()),
-                            combineToLocalDateTime(s.getDate(), s.getStartTime()),
+                            safeCombineToLocalDateTime(s.getDate(), s.getStartTime()),
                             nz(s.getStartTime()),
                             nz(s.getEndTime()),
                             nz(s.getStudentId()),
@@ -119,13 +127,20 @@ public class SessionsFragment extends Fragment {
         });
     }
 
-    private static LocalDateTime combineToLocalDateTime(String dateIso, String hhmm) {
-        int y = Integer.parseInt(dateIso.substring(0,4));
-        int mo = Integer.parseInt(dateIso.substring(5,7));
-        int d = Integer.parseInt(dateIso.substring(8,10));
-        int h = Integer.parseInt(hhmm.substring(0,2));
-        int m = Integer.parseInt(hhmm.substring(3,5));
-        return LocalDateTime.of(y, mo, d, h, m);
+    // ✅ Null/format-safe; never throws if date/startTime are missing or malformed
+    private static LocalDateTime safeCombineToLocalDateTime(String dateIso, String hhmm) {
+        try {
+            if (dateIso == null || dateIso.length() < 10 || hhmm == null || hhmm.length() < 5)
+                return LocalDateTime.now();
+            int y  = Integer.parseInt(dateIso.substring(0,4));
+            int mo = Integer.parseInt(dateIso.substring(5,7));
+            int d  = Integer.parseInt(dateIso.substring(8,10));
+            int h  = Integer.parseInt(hhmm.substring(0,2));
+            int m  = Integer.parseInt(hhmm.substring(3,5));
+            return LocalDateTime.of(y, mo, d, h, m);
+        } catch (Throwable t) {
+            return LocalDateTime.now();
+        }
     }
 
     private void bind(@NonNull List<SessionRow> upcoming, @NonNull List<SessionRow> past) {

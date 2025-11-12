@@ -1,6 +1,6 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.tutor;
 
-import android.content.Context;
+import android.content.Context; // ✅ keep
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,7 +18,7 @@ import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
-import com.example.seg2105_project_1_tutor_registration_form.model.Student; // adjust if your Student class lives elsewhere
+import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 
@@ -50,36 +50,35 @@ public class RequestsFragment extends Fragment {
     private RecyclerView list;
     private RequestsAdapter adapter;
 
-    /* ---------- optional host callbacks ---------- */
-    public interface Host { void onRequestHandled(); }
+    /* ---------- lifecycle ---------- */
+    public interface Host {
+        void onRequestHandled();
+    }
     private Host host;
 
     @Override public void onAttach(@NonNull Context ctx) {
         super.onAttach(ctx);
         if (ctx instanceof Host) host = (Host) ctx;
     }
+
     @Override public void onDetach() {
         super.onDetach();
         host = null;
     }
 
-    /* ---------- lifecycle ---------- */
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // ⚠️ no throwing here — be graceful if args are missing during system recreation
         Bundle args = getArguments();
         tutorId = (args != null) ? args.getString(ARG_TUTOR_ID) : null;
-        if (tutorId == null || tutorId.trim().isEmpty()) {
-            throw new IllegalStateException("RequestsFragment requires tutorId");
-        }
+        if (tutorId == null) tutorId = "";
         repo = new FirestoreTutorRepository();
     }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        // Must contain: progress, empty, list
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_simple_list, container, false);
 
         progress = v.findViewById(R.id.progress);
@@ -95,23 +94,35 @@ public class RequestsFragment extends Fragment {
         return v;
     }
 
-    @Override public void onResume() {
+    @Override
+    public void onResume() {
         super.onResume();
-        load(); // refresh when returning to tab
+        load();
     }
 
     /* ---------- data ---------- */
     private void load() {
+        // ✅ Guard against missing tutorId so we don't crash when fragment is recreated by the system
+        if (tutorId.isEmpty()) {
+            bind(new ArrayList<>());
+            Toast.makeText(requireContext(), "Tutor not signed in yet.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         showLoading(true);
         repo.getPendingRequests(tutorId, new TutorRepository.RequestsListCallback() {
             @Override public void onSuccess(List<SessionRequest> reqs) {
-                List<SessionRequest> data = (reqs == null) ? new ArrayList<>() : reqs;
-                if (data.isEmpty()) { bind(new ArrayList<>()); return; }
+                if (reqs == null) reqs = new ArrayList<>();
+                final List<SessionRequest> data = reqs;
+
+                if (data.isEmpty()) {
+                    bind(new ArrayList<>());
+                    return;
+                }
 
                 final int[] remaining = { data.size() };
                 for (SessionRequest r : data) {
-                    // already have a name
-                    if (!safe(r.getStudentName()).isEmpty()) {
+                    if (safe(r.getStudentName()).length() > 0) {
                         if (--remaining[0] == 0) bind(data);
                         continue;
                     }
@@ -138,8 +149,7 @@ public class RequestsFragment extends Fragment {
 
             @Override public void onError(String msg) {
                 showLoading(false);
-                Toast.makeText(requireContext(), (msg == null ? "Failed to load" : msg),
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), msg == null ? "Failed to load" : msg, Toast.LENGTH_SHORT).show();
                 bind(new ArrayList<>());
             }
         });
@@ -158,18 +168,15 @@ public class RequestsFragment extends Fragment {
     }
 
     private void showLoading(boolean loading) {
-        if (progress != null) progress.setVisibility(loading ? View.VISIBLE : View.GONE);
-        if (loading) {
-            if (list != null) list.setVisibility(View.GONE);
-            if (empty != null) empty.setVisibility(View.GONE);
-        }
+        progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+        if (loading) { list.setVisibility(View.GONE); empty.setVisibility(View.GONE); }
     }
 
     private void toast(String s) {
         Toast.makeText(requireContext(), s, Toast.LENGTH_SHORT).show();
     }
 
-    private static String safe(String s){ return s == null ? "" : s; }
+    private static String safe(String s){ return s==null ? "" : s; }
 
     private static String formatWhenLine(SessionRequest r) {
         String subject = safe(r.getSubject());
@@ -180,7 +187,7 @@ public class RequestsFragment extends Fragment {
         if (!subject.isEmpty()) fromMeta = fromMeta.isEmpty() ? subject : (fromMeta + " • " + subject);
 
         try {
-            Timestamp ts = r.getRequestedAtMillis(); // ok if null
+            Timestamp ts = r.getRequestedAtMillis();
             if (ts != null) {
                 Date d = ts.toDate();
                 String when = DateFormat.getDateTimeInstance(
@@ -188,23 +195,21 @@ public class RequestsFragment extends Fragment {
                 return fromMeta.isEmpty() ? ("Requested " + when) : (fromMeta + " • " + when);
             }
         } catch (Throwable ignored) { }
+
         return fromMeta.isEmpty() ? "Request" : fromMeta;
     }
 
     /* ---------- adapter ---------- */
     class RequestsAdapter extends RecyclerView.Adapter<ReqVH> {
         private final List<SessionRequest> items = new ArrayList<>();
-
         void setItems(List<SessionRequest> newItems) {
             items.clear();
-            if (newItems != null) items.addAll(newItems);
+            items.addAll(newItems);
             notifyDataSetChanged();
         }
 
         @NonNull @Override public ReqVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Must contain: tvWhen, tvStudent, btnApprove, btnReject
-            View row = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_request_row, parent, false);
+            View row = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_request_row, parent, false);
             return new ReqVH(row);
         }
 
@@ -212,8 +217,7 @@ public class RequestsFragment extends Fragment {
             SessionRequest r = items.get(pos);
 
             h.when.setText(formatWhenLine(r));
-            String name = safe(r.getStudentName());
-            h.student.setText("Student: " + (name.isEmpty() ? "—" : name));
+            h.student.setText("Student: " + (safe(r.getStudentName()).isEmpty() ? "—" : r.getStudentName()));
 
             h.approve.setOnClickListener(v -> {
                 String id = safe(r.getId());
@@ -258,7 +262,7 @@ public class RequestsFragment extends Fragment {
 
         private int getBindingAdapterPositionSafe(@NonNull RecyclerView.ViewHolder vh, int fallback) {
             int p = vh.getBindingAdapterPosition();
-            return (p == RecyclerView.NO_POSITION) ? fallback : p;
+            return p == RecyclerView.NO_POSITION ? fallback : p;
         }
     }
 

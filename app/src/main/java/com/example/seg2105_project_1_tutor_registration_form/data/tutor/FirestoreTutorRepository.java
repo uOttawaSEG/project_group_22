@@ -160,24 +160,63 @@ public class FirestoreTutorRepository implements TutorRepository {
 
     /* ---------- helpers used by your UI ---------- */
 
+
     @Override
     public void getPendingRequests(String tutorId, RequestsListCallback cb) {
         requestsCol(tutorId)
                 .whereEqualTo("status", "pending")
-                .orderBy("requestedAtMillis", Query.Direction.DESCENDING) // Timestamp field
+                // remove orderBy to avoid type conflicts; we'll sort client-side
                 .get()
                 .addOnSuccessListener(snap -> {
-                    List<SessionRequest> list = new ArrayList<>();
+                    List<SessionRequest> out = new ArrayList<>();
                     for (DocumentSnapshot d : snap.getDocuments()) {
-                        SessionRequest r = d.toObject(SessionRequest.class);
-                        if (r == null) continue;
-                        if (r.getId() == null || r.getId().isEmpty()) r.setId(d.getId());
-                        list.add(r);
+                        SessionRequest r = new SessionRequest();
+
+                        r.setId(d.getString("id") != null ? d.getString("id") : d.getId());
+                        r.setTutorId(tutorId);
+                        r.setStudentId(d.getString("studentId"));
+                        r.setStudentName(d.getString("studentName"));
+                        r.setStudentEmail(d.getString("studentEmail"));
+                        r.setSlotId(d.getString("slotId"));
+                        r.setDate(d.getString("date"));
+                        r.setStartTime(d.getString("startTime"));
+                        r.setEndTime(d.getString("endTime"));
+                        r.setNote(d.getString("note"));
+                        r.setGrade(d.getString("grade"));
+                        r.setSubject(d.getString("subject"));
+                        r.setStatus(d.getString("status") == null ? "pending" : d.getString("status"));
+
+                        // Normalize requestedAtMillis: accept Timestamp or Long
+                        com.google.firebase.Timestamp ts = d.getTimestamp("requestedAtMillis");
+                        if (ts == null) {
+                            Long ms = d.getLong("requestedAtMillis");
+                            if (ms != null) {
+                                ts = new com.google.firebase.Timestamp(ms / 1000,
+                                        (int) ((ms % 1000) * 1_000_000));
+                            }
+                        }
+                        r.setRequestedAt(ts);  // your POJO maps this to getRequestedAtMillis()
+
+                        out.add(r);
                     }
-                    cb.onSuccess(list);
+
+                    // Newest first (nulls last)
+                    Collections.sort(out, (a, b) -> {
+                        com.google.firebase.Timestamp ta = a.getRequestedAtMillis();
+                        com.google.firebase.Timestamp tb = b.getRequestedAtMillis();
+                        if (ta == null && tb == null) return 0;
+                        if (ta == null) return 1;
+                        if (tb == null) return -1;
+                        return tb.compareTo(ta);
+                    });
+
+                    cb.onSuccess(out);
                 })
                 .addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
+
+    private static String nz(String v, String def) { return v == null || v.isEmpty() ? def : v; }
+
 
     @Override
     public void getSlotById(String tutorId, String slotId, SingleSlotCallback cb) {
