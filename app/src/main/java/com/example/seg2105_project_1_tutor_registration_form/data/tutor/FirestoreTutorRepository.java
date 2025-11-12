@@ -21,6 +21,48 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/*
+ * FirestoreTutorRepository: A tutor repository using
+ *
+ * Collections (per tutor):
+ * users/{t
+ * users/{t
+ * users/{t
+ *
+ * Status:
+ * - Requests: PENDING | APPROVED | REJECTED
+ * - Sessions: APPROVED  (extend with CANCELLED if needed)
+ *
+ * *Key methods:*
+ * - submitSessionRequest(tutorId, student
+ *      • TX: read slot (must exist & !booked).
+ *      • Copy date/start/end/approval onto request.
+ *       • requiresApproval?: write PENDING, otherwise create Session + slot.booked=true.
+ *
+ * approveRequest(tutorId, requestId
+ *   • TX: req should be PENDING; slot should exist & should not be booked.
+ *     • Create Session (copies timing), slot.booked=true, request=APPROVED.
+ *
+ * - rejectRequest(tutorId,
+ *   • Update request.status = REJECTED (no change to slot).
+ *
+ * delete availability slot by tutorId,
+ *      • TX: if booked -> fail; else delete slot. (Relax in D3 if allowed.)
+ *
+ *  getPendingRequests(t
+ *      • Query PENDING; normalize requestedAtMillis; sort newest-first.
+ *
+ * – getAvailabilitySlots(t
+ *     • Fetch & normalize legacy fields; sort by date, then startTime.
+ *
+ * public AvailabilitySlot createAvailabilitySlot(long tutorId, java
+ *      • Validate (future, HH:mm, :00/:30), calculate end = +30 minutes, avoid (date, start) overlap, print slot.
+ *
+ * - getTutorSessions
+ *   • Split by upcoming/past; sort by start time (up ↑, past ↓).
+ */
+
+
 public class FirestoreTutorRepository implements TutorRepository {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -439,3 +481,13 @@ public class FirestoreTutorRepository implements TutorRepository {
         }
     }
 }
+
+/*
+ * Extras:
+ * - Testing: seed one manual and one auto-approved slot; assert PENDING vs APPROVED paths and slot.booked flips.
+ * – Securitatea: se baza pe Firestore Rules, unde elevii au permisiunea să îşi facă propria cerere,
+ * – i18n/time: formats as “yyyy-MM-dd” + “HH:mm” (24h). Adding zones could require consistent conversion on read/write
+ *   - Mistakes: keep messages brief (like “Slot already booked” or “Invalid time”). Present via callbacks alone.
+ * - Perf: for big data, consider adding “indexed queries” (date or startTime) and “pagination” (startAfter
+ * Migration: legacy fields “start”/“endTime” are normalized at read – remove once all documents are updated.
+ */

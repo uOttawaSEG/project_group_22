@@ -254,3 +254,12 @@ public class TutorAvailabilityActivity extends AppCompatActivity {
         }
     }
 }
+/*
+* EXTRA (testing, UX, future work)
+* – Testing, mocking FirebaseAuth UID; seeding 2 slots, manual versus auto, checking results of requests.
+        * – Error handling: missing tutorId -> finish(), empty slots -> show empty view, network -> toast.
+* – i18n/time: Dates are represented as ‘yyyy-MM-dd’, times as ‘HH:mm’ (24h). If handling time zones, handle
+* – Accessibility: Adding ‘Content Description’ to buttons/icons; Ensuring 44dp touch targets in item_slot_row
+* – Securitate: se baza pe regulile de securitate Firestore pentru a restricioneaza aici crearea cererilor si citirea
+* – Implement subject filters, pull to refresh, and a centralized location for constants/keys.
+*/

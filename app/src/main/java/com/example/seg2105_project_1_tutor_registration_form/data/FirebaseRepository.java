@@ -17,7 +17,7 @@ public class FirebaseRepository {
         return auth.createUserWithEmailAndPassword(email, password);
     }
 
-    // ✅ add this
+
     public Task<AuthResult> signIn(String email, String password) {
         return auth.signInWithEmailAndPassword(email, password);
     }

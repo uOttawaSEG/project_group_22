@@ -1,11 +1,17 @@
 package com.example.seg2105_project_1_tutor_registration_form.data.tutor;
 
+//import the following
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
 import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 
 import java.util.List;
+/** * TutorRepository—contract for tutor data operations (Firestore impl: FirestoreTutorRepository) *
+
+ * Scope * - Add, remove, and list available slots. Students submit requests, and tutors approve or reject them. * * Callbacks * - All methods are async; return via callbacks * Helpers: fetch student, single slot, sessions (past/upcoming). - onError(String): a brief message for the user
+ * Customs * - Time "HH:mm" (:00 or :30); Date "yyyy-MM-dd" Status of the request: PENDING, APPROVED, REJECTED Sessions are divided by start time into upcoming and past categories.
+ * UI/Threading: Firestore operations are asynchronous; only callbacks are used for updating the user interface. */
 
 public interface TutorRepository {
 
