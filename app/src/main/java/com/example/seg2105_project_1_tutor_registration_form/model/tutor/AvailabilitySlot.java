@@ -1,4 +1,15 @@
 package com.example.seg2105_project_1_tutor_registration_form.model.tutor;
+/* * AvailabilitySlot — POJO for a single tutoring window of thirty minutes. * * * Goal * - Indicates a single atomic slot that a student may reserve or request. * * Field meanings are stored in Firestore under users/{tutorId}/availabilitySlots/{slotId}.
+ * - id: Firestore document id (used by UI/actions; set after create).
+ * - tutorId: the slot's owner (denormalized for ease of use or inquiries).
+ * - date: "yyyy-MM-dd" (safely sorted string).
+ * - startTime/endTime: "HH:mm" (24 hours). StartTime + 30 minutes equals endTime.
+ * * requiresApproval: false → auto-approve (session created instantly); * requiresApproval: true → requests are PENDING until tutor approves.
+ * - booked: true upon approval (or auto-approval) of a request.
+ * Subject: optional label (such as "PHY1121") that is not necessary for core flow
+ * Invariants (required by the repository when creating or updating)
+ * - startTime minutes that fall between {00, 30} * - (date, startTime) distinct for each tutor * */
+
 
 public class AvailabilitySlot {
     private String id;          // e.g., "2025-11-15_1400"

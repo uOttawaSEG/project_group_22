@@ -1,6 +1,6 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.tutor;
 
-import android.content.Context; // ✅ keep
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,7 +27,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+/*
+/* * RequestsFragment * ----------------
+ * The goal is to provide the tutor with a screen that displays pending session request items and allows them to *approve or reject each one.
+ * How it operates: *   • Arguments: use newInstance(tutorId) to pass the tutor's UID. To prevent the fragment from crashing if the system recreates it, we protect against * null/missing args.   • TutorRepository (FirestoreTutorRepository) is used as the data source to: *       * - getStudent(studentId) → enrich rows with the student's full name (if missing) - getPendingRequests(tutorId) → initial list       - actions per row - approveRequest / rejectRequest   • UI states: displays a RecyclerView once data is available, an empty view when there are no * requests, and a progress spinner during loading.   • Resilience includes defensive binding, graceful error toasts, and safe null/empty checks (safe(String)).       In order to avoid double tapping, buttons are turned off during approve/reject.       If it works, we ideally take the item off the list and let the host know.
 
+ */
 public class RequestsFragment extends Fragment {
 
     /* ---------- factory & args ---------- */
@@ -277,4 +282,10 @@ public class RequestsFragment extends Fragment {
             reject = v.findViewById(R.id.btnReject);
         }
     }
+    /*
+     *   • Lifecycle: *       Parent Activities can implement Host callback (optional) to notify Host after * an item is handled (e.g., to refresh badges/tabs).
+     *       To maintain the list's freshness, onCreateView and onResume call load().
+     * Notable assistants: *   The function formatWhenLine(r) creates a condensed "Grade • Subject • Requested <time>" line.   • getBindingAdapterPositionSafe(...): Prevents NO_POSITION errors when updating quickly.
+     * Expectations for layout: *   • @id/progress, @id/empty (TextView ok), and @id/list are contained in fragment_simple_list.   • @id/tvWhen, @id/tvStudent, @id/btnApprove, and @id/btnReject are contained in item_request_row.
+     */
 }

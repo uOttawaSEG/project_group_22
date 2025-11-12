@@ -12,6 +12,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.seg2105_project_1_tutor_registration_form.R;
 
 import java.util.List;
+/* * A list of TutorRow cards for students is rendered by the RecyclerView adapter. In order for parent screens to respond to * "View Availability" taps, it optionally accepts a click listener; in the absence of one, the button is hidden.
+ * Since the "degree" TextView is optional, * we can safely disregard it (null or GONE) if the layout does not include it.
+
+ */
 
 public class TutorAdapter extends RecyclerView.Adapter<TutorAdapter.VH> {
 

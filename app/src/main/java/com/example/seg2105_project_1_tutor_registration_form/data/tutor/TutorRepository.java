@@ -7,11 +7,20 @@ import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session
 import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 
 import java.util.List;
-/** * TutorRepository—contract for tutor data operations (Firestore impl: FirestoreTutorRepository) *
-
- * Scope * - Add, remove, and list available slots. Students submit requests, and tutors approve or reject them. * * Callbacks * - All methods are async; return via callbacks * Helpers: fetch student, single slot, sessions (past/upcoming). - onError(String): a brief message for the user
- * Customs * - Time "HH:mm" (:00 or :30); Date "yyyy-MM-dd" Status of the request: PENDING, APPROVED, REJECTED Sessions are divided by start time into upcoming and past categories.
- * UI/Threading: Firestore operations are asynchronous; only callbacks are used for updating the user interface. */
+/** * * TutorRepository – handles tutor data in Firestore:
+ *
+ * Basically, this lets you list, add, and remove available time slots. Tutors can then accept or reject student requests. All methods are async, using callbacks to return data.
+ *
+ * Helpers: we can get student info, a single time slot, and past or upcoming sessions.
+ * - onError(String): quickly tells the user if something went wrong.
+ *
+ * Customs:
+ * - Dates are in yyyy-MM-dd format. Times are HH:mm (:00 or :30).
+ * - Request statuses: PENDING, APPROVED, REJECTED
+ * - Sessions are split into upcoming and past, based on start time.
+ *
+ * UI/Threading: Callbacks are the only way to update the UI, since Firestore is async.
+ */
 
 public interface TutorRepository {
 
@@ -59,6 +68,5 @@ public interface TutorRepository {
     void getSlotById(String tutorId, String slotId, SingleSlotCallback cb);
     void getStudent(String studentId, StudentCallback cb);
 
-    // 🔹 Sessions list for the Tutor “Sessions” tab
     void getTutorSessions(String tutorId, SessionsListCallback cb);
 }

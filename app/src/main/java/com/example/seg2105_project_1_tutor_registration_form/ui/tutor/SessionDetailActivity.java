@@ -9,52 +9,80 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 /*
-Shows details for a single tutoring session. It renders the values passed from the list
-(date/time window, status, student name/email/notes). If a studentUid was provided,
-it also loads /users/{studentUid} to enrich name/email (if present).
-*/
+ * SessionDetailActivity
+ * ---------------------
+ * Purpose:
+ *   Shows a single tutoring session’s details. Values come primarily from Intent extras
+ *   provided by the list screen; if we also receive a studentUid, we enrich the name/email
+ *   from Firestore (/users/{studentUid}) when available.
+ *
+ * Notes:
+ *   - All UI fields are defensively populated (fallback to "—" or empty string).
+ *   - Firestore enrichment is optional and non-blocking; errors are ignored to keep UX smooth.
+ */
 public class SessionDetailActivity extends AppCompatActivity {
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_session_detail);
 
+        // --- View references (TextViews expected in activity_session_detail) ---
         TextView tvWhen   = findViewById(R.id.tvWhen);
         TextView tvStatus = findViewById(R.id.tvStatus);
         TextView tvName   = findViewById(R.id.tvStudentName);
         TextView tvEmail  = findViewById(R.id.tvStudentEmail);
         TextView tvNotes  = findViewById(R.id.tvNotes);
 
-        // Values passed from the list item (use whatever keys your adapter sets)
-        String when   = getIntent().getStringExtra("when");          // e.g., "2025-11-11 • 10:00–10:30"
-        String status = getIntent().getStringExtra("status");        // e.g., "approved"
-        String name   = getIntent().getStringExtra("studentName");   // may be null/placeholder
-        String email  = getIntent().getStringExtra("studentEmail");  // may be null
-        String notes  = getIntent().getStringExtra("notes");         // optional
-        String studentUid = getIntent().getStringExtra("studentUid");// may be null
+        // --- Intent extras coming from the list item / adapter ---
+        // Example values:
+        //   when   = "2025-11-11 • 10:00–10:30"
+        //   status = "APPROVED" | "PENDING" | "REJECTED"
+        //   name   = student's display name (may be absent if not resolved earlier)
+        //   email  = student's email (optional)
+        //   notes  = tutor-facing notes entered by the student (optional)
+        //   studentUid = Firestore user document id for enrichment (optional)
+        String when       = getIntent().getStringExtra("when");
+        String status     = getIntent().getStringExtra("status");
+        String name       = getIntent().getStringExtra("studentName");
+        String email      = getIntent().getStringExtra("studentEmail");
+        String notes      = getIntent().getStringExtra("notes");
+        String studentUid = getIntent().getStringExtra("studentUid");
 
+        // --- Bind base values with safe fallbacks so the UI never shows "null" ---
         tvWhen.setText(when == null ? "" : when);
         tvStatus.setText(status == null ? "" : status);
         tvName.setText(name == null || name.isEmpty() ? "—" : name);
         tvEmail.setText(email == null || email.isEmpty() ? "—" : email);
         tvNotes.setText(notes == null || notes.isEmpty() ? "—" : notes);
 
-        // Optional enrichment if we have a real student uid
+        // --- Optional Firestore enrichment: prefer authoritative user profile if available ---
         if (studentUid != null && !studentUid.isEmpty()) {
             FirebaseFirestore.getInstance()
                     .collection("users").document(studentUid)
                     .get()
+                    // On success, replace name/email if the user doc has them
                     .addOnSuccessListener(d -> fillFromUserDoc(d, tvName, tvEmail))
-                    .addOnFailureListener(e -> {/* ignore for test data */});
+                    // On failure, keep whatever we already showed (likely from intent)
+                    .addOnFailureListener(e -> { /* ignore to keep UI responsive */ });
         }
     }
 
+    /**
+     * Safely pull full name and email from the user document and update the UI.
+     * This only overwrites existing fields if the fetched values are non-empty.
+     */
     private void fillFromUserDoc(DocumentSnapshot d, TextView tvName, TextView tvEmail) {
         if (d == null || !d.exists()) return;
+
+        // Build a full name from first/last; trim to handle missing parts gracefully
         String first = d.getString("firstName");
         String last  = d.getString("lastName");
         String nm    = ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim();
-        String em    = d.getString("email");
+
+        // Pull email if present
+        String em = d.getString("email");
+
+        // Only overwrite UI if we have meaningful values
         if (nm != null && !nm.isEmpty()) tvName.setText(nm);
         if (em != null && !em.isEmpty()) tvEmail.setText(em);
     }

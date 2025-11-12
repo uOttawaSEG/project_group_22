@@ -24,6 +24,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/*
+ *  Students can browse tutors who have at least one FUTURE, unbooked * availability slot on this screen. After requesting users with the role "TUTOR" from Firestore (with a * fallback for mixed casing/alternate field names), we search * users/{tutorId}/availabilitySlots for each tutor to see if there are any open slots that haven't been reserved in * the past. A RecyclerView displays matching tutors; tapping a card brings up * TutorAvailabilityActivity with the tutorId and tutorName.
+ * Defensive/safe options: * - Manages the role fields "role" or "userRole" as well as any variations of "tutor." Either "startTime" or "start" in slot documents are accepted. AtomicInteger + synchronized list is used to coordinate async fetches. Tutors are sorted by display name; the empty state is hidden until loading is complete.
+ */
+
 public class TutorListActivity extends AppCompatActivity {
 
     private RecyclerView recycler;
