@@ -10,17 +10,16 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class AvailabilityFragment extends Fragment {
@@ -41,7 +40,9 @@ public class AvailabilityFragment extends Fragment {
     private View progress;
     private View empty;
     private RecyclerView list;
-    private SlotAdapter adapter;
+
+    // 🔹 use the adapter with the Delete button
+    private AvailabilityAdapter adapter;
 
     @Override public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,7 +62,33 @@ public class AvailabilityFragment extends Fragment {
 
         list = v.findViewById(R.id.list);
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new SlotAdapter();
+
+        // 🔹 METHOD C: confirm → delete via repo → update adapter
+        adapter = new AvailabilityAdapter((slot, position) -> {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Delete slot?")
+                    .setMessage("Remove " + slot.getDate() + " • " + slot.getStartTime() + "–" + slot.getEndTime() + "?")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Delete", (d, w) -> {
+                        repo.deleteAvailabilitySlot(tutorId, slot.getId(), new TutorRepository.SimpleCallback() {
+                            @Override public void onSuccess() {
+                                adapter.removeAt(position);
+                                Snackbar.make(list, "Slot deleted", Snackbar.LENGTH_SHORT).show();
+                                // show empty state if list became empty
+                                if (adapter.getItemCount() == 0) {
+                                    list.setVisibility(View.GONE);
+                                    empty.setVisibility(View.VISIBLE);
+                                }
+                            }
+                            @Override public void onError(String msg) {
+                                Snackbar.make(list, msg == null ? "Failed to delete" : msg,
+                                        Snackbar.LENGTH_LONG).show();
+                            }
+                        });
+                    })
+                    .show();
+        });
+
         list.setAdapter(adapter);
 
         loadSlots(); // initial load
@@ -81,38 +108,21 @@ public class AvailabilityFragment extends Fragment {
         showLoading(true);
         repo.getAvailabilitySlots(tutorId, new TutorRepository.SlotsListCallback() {
             @Override public void onSuccess(List<AvailabilitySlot> slots) {
-                List<SlotRow> rows = new ArrayList<>();
-                if (slots != null) {
-                    for (AvailabilitySlot s : slots) {
-                        rows.add(new SlotRow(
-                                s.getDate(),
-                                s.getStartTime(),
-                                s.getEndTime(),
-                                s.isRequiresApproval(),
-                                s.isBooked(),
-                                s.getSubject()
-                        ));
-                    }
-                }
-                bindSlots(rows);
                 showLoading(false);
+                if (slots == null || slots.isEmpty()) {
+                    list.setVisibility(View.GONE);
+                    empty.setVisibility(View.VISIBLE);
+                } else {
+                    empty.setVisibility(View.GONE);
+                    list.setVisibility(View.VISIBLE);
+                    adapter.setData(slots); // adapter expects AvailabilitySlot list
+                }
             }
             @Override public void onError(String msg) {
                 showLoading(false);
                 showError(msg != null ? msg : getString(R.string.error_generic));
             }
         });
-    }
-
-    private void bindSlots(@NonNull List<SlotRow> rows) {
-        if (rows.isEmpty()) {
-            list.setVisibility(View.GONE);
-            empty.setVisibility(View.VISIBLE);
-        } else {
-            empty.setVisibility(View.GONE);
-            list.setVisibility(View.VISIBLE);
-            adapter.submitList(rows);
-        }
     }
 
     private void showError(@NonNull String msg) {
@@ -124,55 +134,6 @@ public class AvailabilityFragment extends Fragment {
         if (loading) {
             empty.setVisibility(View.GONE);
             list.setVisibility(View.GONE);
-        }
-    }
-
-    /* --- view model for each row --- */
-    static class SlotRow {
-        final String date, start, end, subject;
-        final boolean requiresApproval, booked;
-        SlotRow(String date, String start, String end, boolean requiresApproval, boolean booked, String subject) {
-            this.date = date; this.start = start; this.end = end;
-            this.requiresApproval = requiresApproval; this.booked = booked; this.subject = subject;
-        }
-    }
-
-    /* --- RecyclerView adapter --- */
-    private static class SlotAdapter extends ListAdapter<SlotRow, SlotVH> {
-        protected SlotAdapter() {
-            super(new DiffUtil.ItemCallback<SlotRow>() {
-                @Override public boolean areItemsTheSame(@NonNull SlotRow a, @NonNull SlotRow b) {
-                    return a.date.equals(b.date) && a.start.equals(b.start);
-                }
-                @Override public boolean areContentsTheSame(@NonNull SlotRow a, @NonNull SlotRow b) {
-                    return a.end.equals(b.end)
-                            && a.requiresApproval == b.requiresApproval
-                            && a.booked == b.booked
-                            && ((a.subject==null && b.subject==null) || (a.subject!=null && a.subject.equals(b.subject)));
-                }
-            });
-        }
-        @NonNull @Override public SlotVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View row = LayoutInflater.from(parent.getContext())
-                    .inflate(android.R.layout.simple_list_item_2, parent, false);
-            return new SlotVH(row);
-        }
-        @Override public void onBindViewHolder(@NonNull SlotVH h, int position) {
-            SlotRow s = getItem(position);
-            h.title.setText(s.date + " • " + s.start + "–" + s.end);
-            String meta = (s.subject!=null && !s.subject.isEmpty()? s.subject+" • " : "")
-                    + (s.requiresApproval? "manual approval" : "auto")
-                    + " • " + (s.booked? "booked" : "open");
-            h.subtitle.setText(meta);
-        }
-    }
-
-    private static class SlotVH extends RecyclerView.ViewHolder {
-        final TextView title, subtitle;
-        SlotVH(@NonNull View itemView) {
-            super(itemView);
-            title = itemView.findViewById(android.R.id.text1);
-            subtitle = itemView.findViewById(android.R.id.text2);
         }
     }
 }

@@ -1,15 +1,14 @@
 package com.example.seg2105_project_1_tutor_registration_form.data.tutor;
 
+import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
-import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.text.SimpleDateFormat;
@@ -65,26 +64,38 @@ public class FirestoreTutorRepository implements TutorRepository {
 
                     boolean requiresApproval = Boolean.TRUE.equals(slot.getBoolean("requiresApproval"));
 
+                    // Read these once and copy onto the request so UI can show them without joins
+                    String date = slot.getString("date");
+                    String startTime = slot.getString("startTime");
+                    String endTime = slot.getString("endTime");
+
                     Map<String, Object> req = new HashMap<>();
-                    req.put("id", rRef.getId());                 // your model uses 'id'
+                    req.put("id", rRef.getId());
                     req.put("tutorId", tutorId);
                     req.put("studentId", studentId);
                     req.put("slotId", slotId);
-                    req.put("requestedAtMillis", Timestamp.now()); // Timestamp
+                    req.put("date", date);
+                    req.put("startTime", startTime);
+                    req.put("endTime", endTime);
+                    req.put("requiresApproval", requiresApproval);
+                    req.put("requestedAtMillis", Timestamp.now());
 
                     if (requiresApproval) {
                         // PENDING ONLY — do NOT book the slot here
-                        req.put("status", "pending");
+                        req.put("status", "PENDING");
                         trx.set(rRef, req);
                     } else {
                         // AUTO-APPROVE: create session + book slot atomically
-                        req.put("status", "approved");
+                        req.put("status", "APPROVED");
                         DocumentReference sessionRef = sessionsCol(tutorId).document();
                         Map<String, Object> session = new HashMap<>();
                         session.put("sessionId", sessionRef.getId());
                         session.put("slotId", slotId);
                         session.put("studentId", studentId);
-                        session.put("status", "approved");
+                        session.put("status", "APPROVED");
+                        session.put("date", date);
+                        session.put("startTime", startTime);
+                        session.put("endTime", endTime);
 
                         trx.set(rRef, req);
                         trx.set(sessionRef, session);
@@ -107,7 +118,7 @@ public class FirestoreTutorRepository implements TutorRepository {
                     if (!req.exists()) throw new IllegalStateException("Request missing");
 
                     String status = req.getString("status");
-                    if (!"pending".equals(status)) {
+                    if (!"PENDING".equals(status)) {
                         throw new IllegalStateException("Request not pending");
                     }
 
@@ -121,17 +132,25 @@ public class FirestoreTutorRepository implements TutorRepository {
                         throw new IllegalStateException("Slot already booked");
                     }
 
+                    // Copy timing onto session for easy listing
+                    String date = slot.getString("date");
+                    String startTime = slot.getString("startTime");
+                    String endTime = slot.getString("endTime");
+
                     // Create session + book slot + flip request status — atomically
                     DocumentReference sessionRef = sessionsCol(tutorId).document();
                     Map<String, Object> session = new HashMap<>();
                     session.put("sessionId", sessionRef.getId());
                     session.put("slotId", slotId);
                     session.put("studentId", studentId);
-                    session.put("status", "approved");
+                    session.put("status", "APPROVED");
+                    session.put("date", date);
+                    session.put("startTime", startTime);
+                    session.put("endTime", endTime);
 
                     trx.set(sessionRef, session);
                     trx.update(sRef, "booked", true);      // only place booked=true (approval path)
-                    trx.update(rRef, "status", "approved");
+                    trx.update(rRef, "status", "APPROVED");
 
                     return null;
                 }).addOnSuccessListener(v -> cb.onSuccess())
@@ -143,29 +162,35 @@ public class FirestoreTutorRepository implements TutorRepository {
        ---------------------------------------------------------- */
     @Override
     public void rejectRequest(String tutorId, String requestId, SimpleCallback cb) {
-        requestRef(tutorId, requestId).update("status", "rejected")
+        requestRef(tutorId, requestId).update("status", "REJECTED")
                 .addOnSuccessListener(v -> cb.onSuccess())
                 .addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
 
     /* ----------------------------------------------------------
-       TUTOR — delete an availability slot
+       TUTOR — delete an availability slot (guard if booked)
        ---------------------------------------------------------- */
     @Override
     public void deleteAvailabilitySlot(String tutorId, String slotId, SimpleCallback cb) {
-        slotRef(tutorId, slotId).delete()
-                .addOnSuccessListener(v -> cb.onSuccess())
+        DocumentReference sRef = slotRef(tutorId, slotId);
+        db.runTransaction(trx -> {
+                    DocumentSnapshot snap = trx.get(sRef);
+                    if (!snap.exists()) throw new IllegalStateException("Slot missing");
+                    if (Boolean.TRUE.equals(snap.getBoolean("booked"))) {
+                        throw new IllegalStateException("Cannot delete a booked slot");
+                    }
+                    trx.delete(sRef);
+                    return null;
+                }).addOnSuccessListener(v -> cb.onSuccess())
                 .addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
 
     /* ---------- helpers used by your UI ---------- */
 
-
     @Override
     public void getPendingRequests(String tutorId, RequestsListCallback cb) {
         requestsCol(tutorId)
-                .whereEqualTo("status", "pending")
-                // remove orderBy to avoid type conflicts; we'll sort client-side
+                .whereEqualTo("status", "PENDING")
                 .get()
                 .addOnSuccessListener(snap -> {
                     List<SessionRequest> out = new ArrayList<>();
@@ -184,26 +209,32 @@ public class FirestoreTutorRepository implements TutorRepository {
                         r.setNote(d.getString("note"));
                         r.setGrade(d.getString("grade"));
                         r.setSubject(d.getString("subject"));
-                        r.setStatus(d.getString("status") == null ? "pending" : d.getString("status"));
+                        r.setStatus(d.getString("status") == null ? "PENDING" : d.getString("status"));
 
                         // Normalize requestedAtMillis: accept Timestamp or Long
-                        com.google.firebase.Timestamp ts = d.getTimestamp("requestedAtMillis");
+                        Timestamp ts = d.getTimestamp("requestedAtMillis");
                         if (ts == null) {
                             Long ms = d.getLong("requestedAtMillis");
                             if (ms != null) {
-                                ts = new com.google.firebase.Timestamp(ms / 1000,
-                                        (int) ((ms % 1000) * 1_000_000));
+                                ts = new Timestamp(ms / 1000, (int) ((ms % 1000) * 1_000_000));
                             }
                         }
-                        r.setRequestedAt(ts);  // your POJO maps this to getRequestedAtMillis()
-
+                        // Your POJO has field "requestedAtMillis"
+                        try {
+                            r.getClass().getMethod("setRequestedAtMillis", Timestamp.class).invoke(r, ts);
+                        } catch (Exception ignore) {}
                         out.add(r);
                     }
 
                     // Newest first (nulls last)
                     Collections.sort(out, (a, b) -> {
-                        com.google.firebase.Timestamp ta = a.getRequestedAtMillis();
-                        com.google.firebase.Timestamp tb = b.getRequestedAtMillis();
+                        Timestamp ta, tb;
+                        try {
+                            ta = (Timestamp) a.getClass().getMethod("getRequestedAtMillis").invoke(a);
+                            tb = (Timestamp) b.getClass().getMethod("getRequestedAtMillis").invoke(b);
+                        } catch (Exception e) {
+                            ta = null; tb = null;
+                        }
                         if (ta == null && tb == null) return 0;
                         if (ta == null) return 1;
                         if (tb == null) return -1;
@@ -214,9 +245,6 @@ public class FirestoreTutorRepository implements TutorRepository {
                 })
                 .addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
-
-    private static String nz(String v, String def) { return v == null || v.isEmpty() ? def : v; }
-
 
     @Override
     public void getSlotById(String tutorId, String slotId, SingleSlotCallback cb) {
@@ -262,13 +290,21 @@ public class FirestoreTutorRepository implements TutorRepository {
                             if (legacyEnd != null) s.setEndTime(legacyEnd);
                         }
 
+                        // ensure id present if model has it
+                        try {
+                            if (s.getId() == null || s.getId().isEmpty()) {
+                                s.getClass().getMethod("setId", String.class).invoke(s, d.getId());
+                            }
+                        } catch (Exception ignore) {}
+
                         out.add(s);
                     }
 
-                    // sort chronologically: date then startTime
-                    Collections.sort(out, Comparator
-                            .comparing(AvailabilitySlot::getDate, String::compareTo)
-                            .thenComparing(AvailabilitySlot::getStartTime, String::compareTo));
+                    // sort chronologically: date then startTime (nulls last)
+                    Comparator<AvailabilitySlot> cmp = Comparator
+                            .comparing((AvailabilitySlot s) -> s.getDate() == null ? "9999-99-99" : s.getDate())
+                            .thenComparing(s -> s.getStartTime() == null ? "99:99" : s.getStartTime());
+                    Collections.sort(out, cmp);
 
                     cb.onSuccess(out);
                 })
@@ -323,7 +359,7 @@ public class FirestoreTutorRepository implements TutorRepository {
         db.collection("users").document(tutorId)
                 .collection("availabilitySlots")
                 .whereEqualTo("date", date)
-                .whereEqualTo("startTime", startTime)       // canonical field name
+                .whereEqualTo("startTime", startTime)
                 .get()
                 .addOnSuccessListener((QuerySnapshot snap) -> {
                     if (!snap.isEmpty()) {
@@ -343,7 +379,6 @@ public class FirestoreTutorRepository implements TutorRepository {
                             .collection("availabilitySlots")
                             .document(); // auto id
                     try {
-                        // if AvailabilitySlot has setId(String) use it so UI can read it later
                         slot.getClass().getMethod("setId", String.class).invoke(slot, docRef.getId());
                     } catch (Exception ignore) { /* id field may not exist */ }
 
@@ -366,12 +401,11 @@ public class FirestoreTutorRepository implements TutorRepository {
                     for (DocumentSnapshot d : snap.getDocuments()) {
                         Session s = d.toObject(Session.class);
                         if (s == null) continue;
-                        // ensure id is set on the model if it has a setter
                         try {
                             if (s.getId() == null || s.getId().isEmpty()) {
                                 s.getClass().getMethod("setId", String.class).invoke(s, d.getId());
                             }
-                        } catch (Exception ignore) { /* id field may not exist */ }
+                        } catch (Exception ignore) { }
                         all.add(s);
                     }
 
@@ -384,7 +418,6 @@ public class FirestoreTutorRepository implements TutorRepository {
                         if (startMs >= now) upcoming.add(s); else past.add(s);
                     }
 
-                    // sort upcoming ascending, past descending
                     Comparator<Session> byStart =
                             Comparator.comparing((Session s) -> toMillisSafe(s.getDate(), s.getStartTime()));
                     Collections.sort(upcoming, byStart);
