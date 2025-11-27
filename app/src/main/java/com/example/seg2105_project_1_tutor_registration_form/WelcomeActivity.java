@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.seg2105_project_1_tutor_registration_form.auth.MainActivity;
 import com.example.seg2105_project_1_tutor_registration_form.model.Role;
 import com.example.seg2105_project_1_tutor_registration_form.ui.admin.AdminHomeActivity;
-import com.example.seg2105_project_1_tutor_registration_form.ui.student.TutorListActivity;
+import com.example.seg2105_project_1_tutor_registration_form.ui.student.StudentHomeActivity;
 import com.example.seg2105_project_1_tutor_registration_form.ui.tutor.TutorHomeActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -86,7 +86,7 @@ public class WelcomeActivity extends AppCompatActivity {
         } else if (role.equalsIgnoreCase(Role.TUTOR.name())) {
             intent = new Intent(this, TutorHomeActivity.class);
         } else if (role.equalsIgnoreCase(Role.STUDENT.name())) {
-            intent = new Intent(this, TutorListActivity.class);
+            intent = new Intent(this, StudentHomeActivity.class);
         }
 
         if (intent != null) {

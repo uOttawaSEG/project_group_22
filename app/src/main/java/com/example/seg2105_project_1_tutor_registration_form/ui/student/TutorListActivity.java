@@ -119,6 +119,14 @@ public class TutorListActivity extends AppCompatActivity {
             final String fDisplay = display;
             final String fEmail   = email;
 
+            // Pull rating fields from the tutor doc
+            Double avgObj = doc.getDouble("averageRating");
+            double avg = (avgObj == null) ? 0.0 : avgObj;
+            Long countLong = doc.getLong("ratingCount");
+            int count = (countLong == null) ? 0 : countLong.intValue();
+            final double fAvg = avg;
+            final int fCount = count;
+
             db.collection("users").document(fTutorId)
                     .collection("availabilitySlots")        // MUST match where you WRITE slots
                     .get()
@@ -142,7 +150,7 @@ public class TutorListActivity extends AppCompatActivity {
 
                         if (hasFuture) {
                             synchronized (rows) {
-                                rows.add(new TutorRow(fTutorId, fDisplay, fEmail));
+                                rows.add(new TutorRow(fTutorId, fDisplay, fEmail, fAvg, fCount));
                             }
                         }
 
@@ -182,14 +190,21 @@ public class TutorListActivity extends AppCompatActivity {
         private final String tutorId;
         private final String display;
         private final String email;
+        private final double averageRating;
+        private final int ratingsCount;
 
-        public TutorRow(String tutorId, String display, String email) {
+        public TutorRow(String tutorId, String display, String email,
+                        double averageRating, int ratingsCount) {
             this.tutorId = tutorId;
             this.display = display;
             this.email = email;
+            this.averageRating = averageRating;
+            this.ratingsCount = ratingsCount;
         }
         public String getTutorId() { return tutorId; }
         public String getDisplay() { return display; }
         public String getEmail()   { return email; }
+        public double getAverageRating() { return averageRating; }
+        public int getRatingsCount()     { return ratingsCount; }
     }
 }
