@@ -5,6 +5,7 @@ import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Availab
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
 import com.example.seg2105_project_1_tutor_registration_form.model.Student;
+import com.example.seg2105_project_1_tutor_registration_form.model.Tutor;
 
 import java.util.List;
 /** * * TutorRepository – handles tutor data in Firestore:
@@ -43,6 +44,7 @@ public interface TutorRepository {
 
     interface SessionsListCallback { void onSuccess(List<Session> upcoming, List<Session> past); void onError(String msg); }
 
+    interface TutorCallback { void onSuccess(Tutor t); void onError(String msg); }
     /* ===== D3 operations ===== */
 
     // Create a new 30-min availability slot for a tutor
@@ -69,4 +71,6 @@ public interface TutorRepository {
     void getStudent(String studentId, StudentCallback cb);
 
     void getTutorSessions(String tutorId, SessionsListCallback cb);
+
+    void rateTutor(String tutorId, String sessionId, int stars, SimpleCallback cb);
 }

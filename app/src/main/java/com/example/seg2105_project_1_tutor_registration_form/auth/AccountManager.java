@@ -161,6 +161,9 @@ public class AccountManager {
             data.put("phone", phone);
             data.put("degree", degree);
             data.put("coursesOffered", coursesOffered);
+            data.put("averageRating", 0.0);
+            data.put("ratingsCount", 0);
+            data.put("ratingsSum", 0);
 
             repo.saveUserProfile(uid, data).addOnCompleteListener(save -> {
                 if (!save.isSuccessful()) {

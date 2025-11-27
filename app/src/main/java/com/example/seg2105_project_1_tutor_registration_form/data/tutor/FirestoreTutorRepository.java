@@ -4,6 +4,7 @@ import com.example.seg2105_project_1_tutor_registration_form.model.Student;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.Session;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.SessionRequest;
+import com.example.seg2105_project_1_tutor_registration_form.model.Tutor;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -479,6 +480,64 @@ public class FirestoreTutorRepository implements TutorRepository {
         } catch (Exception e) {
             return 0L;
         }
+    }
+
+    @Override
+    public void rateTutor(String tutorId, String sessionId, int stars, SimpleCallback cb) {
+        if (stars < 1 || stars > 5) {
+            cb.onError("Rating must be between 1 and 5");
+            return;
+        }
+
+        DocumentReference tutorRef = db.collection("users").document(tutorId);
+        DocumentReference sessionRef = sessionsCol(tutorId).document(sessionId);
+
+        db.runTransaction(trx -> {
+                    // 1) Load session and validate
+                    DocumentSnapshot sessionSnap = trx.get(sessionRef);
+                    if (!sessionSnap.exists()) {
+                        throw new IllegalStateException("Session not found");
+                    }
+
+                    String status = sessionSnap.getString("status");
+                    // assuming "DONE" marks a completed session
+                    if (!"DONE".equalsIgnoreCase(status)) {
+                        throw new IllegalStateException("Session not completed yet");
+                    }
+
+                    Long existingRating = sessionSnap.getLong("rating");
+                    if (existingRating != null && existingRating > 0) {
+                        throw new IllegalStateException("Session already rated");
+                    }
+
+                    // 2) Load tutor document
+                    DocumentSnapshot tutorSnap = trx.get(tutorRef);
+                    if (!tutorSnap.exists()) {
+                        throw new IllegalStateException("Tutor not found");
+                    }
+
+                    Long sumLong = tutorSnap.getLong("ratingsSum");
+                    Long countLong = tutorSnap.getLong("ratingsCount");
+
+                    int currentSum = (sumLong == null) ? 0 : sumLong.intValue();
+                    int currentCount = (countLong == null) ? 0 : countLong.intValue();
+
+                    int newSum = currentSum + stars;
+                    int newCount = currentCount + 1;
+                    double newAvg = newCount == 0 ? 0.0 : (double) newSum / newCount;
+
+                    // 3) Apply updates atomically
+                    Map<String, Object> tutorUpdates = new HashMap<>();
+                    tutorUpdates.put("ratingsSum", newSum);
+                    tutorUpdates.put("ratingsCount", newCount);
+                    tutorUpdates.put("averageRating", newAvg);
+                    trx.update(tutorRef, tutorUpdates);
+
+                    trx.update(sessionRef, "rating", stars);
+
+                    return null;
+                }).addOnSuccessListener(v -> cb.onSuccess())
+                .addOnFailureListener(e -> cb.onError(e.getMessage()));
     }
 }
 

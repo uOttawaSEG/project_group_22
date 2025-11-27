@@ -11,6 +11,8 @@ public class Session {
     private String studentName;
     private String studentEmail;
 
+    private Integer rating;
+
     private String date;         // yyyy-MM-dd
     private String startTime;    // HH:mm
     private String endTime;      // HH:mm
@@ -52,4 +54,7 @@ public class Session {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Integer getRating() { return rating; }
+    public void setRating(Integer rating) { this.rating = rating; }
 }
