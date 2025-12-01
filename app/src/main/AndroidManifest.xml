@@ -111,6 +111,11 @@
         <!-- ===================== -->
 
         <activity
+            android:name=".ui.student.StudentHomeActivity"
+            android:exported="false"
+            android:label="Student Home" />
+
+        <activity
             android:name=".ui.student.TutorListActivity"
             android:exported="false"
             android:label="Tutors" />

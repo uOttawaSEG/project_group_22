@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.seg2105_project_1_tutor_registration_form.R;
 
 import java.util.List;
+import java.util.Locale;
 /* * A list of TutorRow cards for students is rendered by the RecyclerView adapter. In order for parent screens to respond to * "View Availability" taps, it optionally accepts a click listener; in the absence of one, the button is hidden.
  * Since the "degree" TextView is optional, * we can safely disregard it (null or GONE) if the layout does not include it.
 
@@ -54,9 +55,22 @@ public class TutorAdapter extends RecyclerView.Adapter<TutorAdapter.VH> {
         holder.name.setText(t.getDisplay());
         holder.email.setText(t.getEmail());
 
+        // Display average rating
+        double avg = t.getAverageRating();
+        int count = t.getRatingsCount();
+        if (holder.rating != null) {
+            if (count == 0) {
+                holder.rating.setText("No ratings yet");
+            } else {
+                holder.rating.setText(
+                        String.format(Locale.getDefault(),
+                                "%.1f ★ (%d)", avg, count)
+                );
+            }
+        }
+
         // Optional degree support (only if item_tutor_card has @id/tutor_degree)
         if (holder.degree != null) {
-            // We don't have degree in TutorRow; leave blank/hidden. Availability screen shows it.
             holder.degree.setVisibility(View.GONE);
         }
 
@@ -72,16 +86,20 @@ public class TutorAdapter extends RecyclerView.Adapter<TutorAdapter.VH> {
     @Override public int getItemCount() { return items == null ? 0 : items.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView name, email, degree; // degree is optional in the layout
+        TextView name, email, degree, rating;
         Button viewBtn;
         VH(@NonNull View v) {
             super(v);
             name    = v.findViewById(R.id.tutor_name);
             email   = v.findViewById(R.id.tutor_email);
             viewBtn = v.findViewById(R.id.btn_view_availability);
-            // Will be null if your card layout doesn't define it; that's OK.
+
+            // Optional degree support
             int degreeId = v.getResources().getIdentifier("tutor_degree", "id", v.getContext().getPackageName());
             degree = degreeId != 0 ? v.findViewById(degreeId) : null;
+
+            // Rating TextView
+            rating = v.findViewById(R.id.tutor_rating);
         }
     }
 }
