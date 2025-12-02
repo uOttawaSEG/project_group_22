@@ -2,7 +2,9 @@ package com.example.seg2105_project_1_tutor_registration_form.ui.student;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.provider.CalendarContract;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -467,6 +469,57 @@ public class StudentSessionsFragment extends Fragment {
         });
     }
 
+    /**
+     * Open the device Calendar app with a prefilled event
+     * for this tutoring session (Google Calendar bonus).
+     */
+    private void openCalendarForSession(StudentSessionItem item) {
+        long startMillis = toMillisSafe(item.date, item.startTime);
+        if (startMillis == 0L) {
+            toast("Could not parse session time");
+            return;
+        }
+
+        // Try to compute a reasonable end time (use endTime if valid, else +1h)
+        long endMillis;
+        if (item.endTime != null && !item.endTime.isEmpty()) {
+            long parsedEnd = toMillisSafe(item.date, item.endTime);
+            if (parsedEnd > startMillis) {
+                endMillis = parsedEnd;
+            } else {
+                endMillis = startMillis + 60L * 60L * 1000L; // fallback: 1h
+            }
+        } else {
+            endMillis = startMillis + 60L * 60L * 1000L;
+        }
+
+        String tutorName = (item.tutorName == null || item.tutorName.isEmpty())
+                ? "Tutor"
+                : item.tutorName;
+
+        String title;
+        if (item.subject != null && !item.subject.isEmpty()) {
+            title = "Tutoring: " + item.subject;
+        } else {
+            title = "Tutoring session with " + tutorName;
+        }
+
+        String description = "Tutor: " + tutorName;
+
+        Intent intent = new Intent(Intent.ACTION_INSERT)
+                .setData(CalendarContract.Events.CONTENT_URI)
+                .putExtra(CalendarContract.Events.TITLE, title)
+                .putExtra(CalendarContract.Events.DESCRIPTION, description)
+                .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
+                .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, endMillis);
+
+        if (intent.resolveActivity(requireContext().getPackageManager()) != null) {
+            startActivity(intent);
+        } else {
+            toast("No calendar app found on this device");
+        }
+    }
+
     // ========== UI HELPERS ==========
 
     private void showLoading(boolean loading) {
@@ -596,6 +649,18 @@ public class StudentSessionsFragment extends Fragment {
                 }
             }
             h.btnCancel.setVisibility(canCancel ? View.VISIBLE : View.GONE);
+
+            // --- Calendar export button (bonus) ---
+            boolean canExportToCalendar =
+                    "APPROVED".equals(item.status) || "COMPLETED".equals(item.status);
+
+            if (canExportToCalendar) {
+                h.btnAddToCalendar.setVisibility(View.VISIBLE);
+                h.btnAddToCalendar.setOnClickListener(v -> openCalendarForSession(item));
+            } else {
+                h.btnAddToCalendar.setVisibility(View.GONE);
+                h.btnAddToCalendar.setOnClickListener(null);
+            }
         }
 
         @Override
@@ -608,6 +673,7 @@ public class StudentSessionsFragment extends Fragment {
             View ratingLayout;
             RatingBar ratingBar;
             Button btnCancel;
+            Button btnAddToCalendar;
 
             VH(@NonNull View v) {
                 super(v);
@@ -618,6 +684,7 @@ public class StudentSessionsFragment extends Fragment {
                 ratingLayout = v.findViewById(R.id.ratingLayout);
                 ratingBar = v.findViewById(R.id.ratingBar);
                 btnCancel = v.findViewById(R.id.btnCancel);
+                btnAddToCalendar = v.findViewById(R.id.btnAddToCalendar);
             }
         }
     }

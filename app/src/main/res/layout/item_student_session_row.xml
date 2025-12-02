@@ -109,5 +109,19 @@
             android:minHeight="36dp"
             android:paddingHorizontal="0dp" />
 
+        <!-- NEW: Add to Calendar Button -->
+        <Button
+            android:id="@+id/btnAddToCalendar"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add to Google Calendar"
+            android:textColor="#2563EB"
+            android:textSize="13sp"
+            android:visibility="gone"
+            android:layout_marginTop="4dp"
+            android:minHeight="36dp"
+            android:paddingHorizontal="0dp" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
