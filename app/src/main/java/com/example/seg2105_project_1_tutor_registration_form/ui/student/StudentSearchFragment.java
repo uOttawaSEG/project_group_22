@@ -1,7 +1,31 @@
 package com.example.seg2105_project_1_tutor_registration_form.ui.student;
 
+/*
+ * StudentSearchFragment.java
+ * --------------------------
+ * This lets a STUDENT look for tutoring sessions by course code
+ * and ask a tutor for help.
+ *
+ * Here's how it works:
+ * 1) The student puts in a course code (like CSI 2110) and hits Search.
+ * 2) Then:
+ *    - It looks for TUTOR users who teach that course.
+ *    - For each tutor, it gets their open time slots.
+ *    - It gets rid of: old time slots and slots when the student already
+ *      has a request or session.
+ * 3) Shows a list of slots (date, time, tutor, major, courses, rating).
+ *    Each one has a Request Session button.
+ * 4) If the student hits Request Session:
+ *    • If the request needs approval → make a sessionRequest with PENDING status.
+ *    • Otherwise (auto-approve) → make a session + APPROVED request and mark the
+ *      time slot as booked.
+ *    If the request goes through, the slot disappears from the list and the
+ *    Activity is notified.
+ */
+
 import android.content.Context;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -69,6 +93,11 @@ public class StudentSearchFragment extends Fragment {
         public String tutorEmail;
         public float tutorAverageRating;
         public int tutorRatingCount;
+
+        // new fields for UI
+        public String tutorDegree;
+        public String tutorCourses;
+
         public String date;
         public String startTime;
         public String endTime;
@@ -87,7 +116,7 @@ public class StudentSearchFragment extends Fragment {
     private RecyclerView list;
     private SlotsAdapter adapter;
 
-    private Set<String> requestedSlotIds = new HashSet<>();
+    private final Set<String> requestedSlotIds = new HashSet<>();
 
     @Override
     public void onAttach(@NonNull Context ctx) {
@@ -111,7 +140,8 @@ public class StudentSearchFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_student_search, container, false);
 
@@ -232,6 +262,29 @@ public class StudentSearchFragment extends Fragment {
             float rating = avgRating != null ? avgRating.floatValue() : 0f;
             int count = ratingCount != null ? ratingCount.intValue() : 0;
 
+            // Degree + courses for this tutor (from registration form)
+            // Try "degree" first, then fall back to "degreeProgram"
+            final String tutorDegree = !nz(tutorDoc.getString("degree")).isEmpty()
+                    ? nz(tutorDoc.getString("degree"))
+                    : nz(tutorDoc.getString("degreeProgram"));
+
+            // Combine courses from:
+            //  - coursesOffered (list)
+            //  - OR coursesOfferedSummary (string)
+            //  - OR coursesCsv (string)
+            List<String> coursesList = (List<String>) tutorDoc.get("coursesOffered");
+            final String coursesLine;
+            if (coursesList != null && !coursesList.isEmpty()) {
+                coursesLine = TextUtils.join(", ", coursesList);
+            } else {
+                String fromSummary = nz(tutorDoc.getString("coursesOfferedSummary"));
+                if (!fromSummary.isEmpty()) {
+                    coursesLine = fromSummary;
+                } else {
+                    coursesLine = nz(tutorDoc.getString("coursesCsv"));
+                }
+            }
+
             db.collection("users").document(tutorId).collection("availabilitySlots")
                     .whereEqualTo("booked", false)
                     .get()
@@ -255,6 +308,11 @@ public class StudentSearchFragment extends Fragment {
                             item.tutorEmail = tutorEmail;
                             item.tutorAverageRating = rating;
                             item.tutorRatingCount = count;
+
+                            // fill new fields
+                            item.tutorDegree = tutorDegree;
+                            item.tutorCourses = coursesLine;
+
                             item.date = date;
                             item.startTime = startTime;
                             item.endTime = endTime;
@@ -528,6 +586,22 @@ public class StudentSearchFragment extends Fragment {
             h.tvWhen.setText(when);
             h.tvTutorName.setText(item.tutorName);
 
+            // Degree line
+            if (item.tutorDegree != null && !item.tutorDegree.isEmpty()) {
+                h.tvTutorDegree.setText(item.tutorDegree);
+                h.tvTutorDegree.setVisibility(View.VISIBLE);
+            } else {
+                h.tvTutorDegree.setVisibility(View.GONE);
+            }
+
+            // Courses line
+            if (item.tutorCourses != null && !item.tutorCourses.isEmpty()) {
+                h.tvTutorCourses.setText(item.tutorCourses);
+                h.tvTutorCourses.setVisibility(View.VISIBLE);
+            } else {
+                h.tvTutorCourses.setVisibility(View.GONE);
+            }
+
             if (item.tutorRatingCount > 0) {
                 String ratingText = String.format(Locale.getDefault(), "%.1f ★ (%d)",
                         item.tutorAverageRating, item.tutorRatingCount);
@@ -548,16 +622,18 @@ public class StudentSearchFragment extends Fragment {
         public int getItemCount() { return items.size(); }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView tvWhen, tvTutorName, tvRating, tvMode;
+            TextView tvWhen, tvTutorName, tvTutorDegree, tvTutorCourses, tvRating, tvMode;
             Button btnRequest;
 
             VH(@NonNull View v) {
                 super(v);
-                tvWhen = v.findViewById(R.id.tvWhen);
-                tvTutorName = v.findViewById(R.id.tvTutorName);
-                tvRating = v.findViewById(R.id.tvRating);
-                tvMode = v.findViewById(R.id.tvMode);
-                btnRequest = v.findViewById(R.id.btnRequest);
+                tvWhen         = v.findViewById(R.id.tvWhen);
+                tvTutorName    = v.findViewById(R.id.tvTutorName);
+                tvTutorDegree  = v.findViewById(R.id.tvTutorDegree);
+                tvTutorCourses = v.findViewById(R.id.tvTutorCourses);
+                tvRating       = v.findViewById(R.id.tvRating);
+                tvMode         = v.findViewById(R.id.tvMode);
+                btnRequest     = v.findViewById(R.id.btnRequest);
             }
         }
     }

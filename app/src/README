@@ -1,0 +1,65 @@
+OTAMS Group 22 — Deliverable 4.0 (Mentora)
+
+Version: v4.0 — Final D4 Submission
+Course: SEG2105 – Fall 2025
+Team: Group 22
+Members: Maryam Sindhu, Joy M., Zack B., Crystal L., Owen F., Youssouf M.
+Package Name: com.example.seg2105_project_1_tutor_registration_form
+
+1. Overview
+Mentora (OTAMS Group 22) is a tutoring-management Android application designed to streamline interactions between Students, Tutors, and Admins.
+Deliverable 4.0 finalizes the full system by completing the Student module and integrating all workflows across the three user roles. The application uses Firebase Authentication and Firestore to persist user accounts, tutor availability, session requests, and confirmed sessions.
+
+2. What’s New in Deliverable 4.0
+Deliverable 4 focuses on the Student experience and full system integration:
+Student search by course code
+Viewing tutor profiles and availability
+Requesting tutoring sessions
+Auto-approval or tutor-approval workflows
+Conflict prevention (no overlapping or past sessions)
+Real-time updates across all roles
+UI polishing and final bug fixes
+Complete integration of Admin → Tutor → Student flows
+
+3. Installation Instructions
+Download OTAMS_Group22_v4.0.apk.
+Transfer the APK to an Android device or emulator (API 30+ recommended).
+Install the application (enable "Install unknown apps" if required).
+Launch the app — it appears as Mentora.
+Log in or register under Admin, Tutor, or Student.
+
+4. Admin Workflow (from D3, integrated in D4)
+Admins can:
+View pending tutor registration requests
+Approve or reject requests
+View approved and rejected lists
+Manage tutor access to the system
+Firestore updates reflect immediately across the application.
+
+5. Tutor Workflow
+Tutors can:
+Add or remove 30-minute availability slots
+View session requests from students
+Approve or reject requests
+View all confirmed sessions under the "Sessions" tab
+Validation includes prevention of overlapping or past slots.
+
+6. Student Workflow (Deliverable 4 Focus)
+Search Tutors by Course
+Students enter a course code (e.g., CSI 2110).
+The system retrieves all tutors who teach that course.
+View Available Slots
+For each tutor:
+Only valid, future, non-conflicting slots are shown.
+Slots linked to existing student requests or sessions are excluded.
+Request a Session
+If a tutor requires approval: a PENDING request is created.
+If auto-approved: the system immediately creates a confirmed session.
+Students can view:
+Pending requests
+Approved sessions
+Session details linked to tutor availability
+
+All data updates in real time via Firestore.
+Deliverable 4 completes the Mentora application with full multi-role integration, stable Firestore operations, and a clear end-to-end workflow.
+This version represents a polished, functional system aligned with SEG2105 requirements.

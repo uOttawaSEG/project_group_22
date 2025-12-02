@@ -1,4 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+   Layout: item_slot_search_result.xml (example name)
+
+Purpose:
+
+- Represents a single tutor time slot in the Student "Search / Results" list.
+
+- Used inside a RecyclerView/ListView to show:
+
+• Date & time of the session
+
+• Tutor name
+
+• Tutor rating (average + number of reviews)
+
+• Approval mode (e.g., Auto-approve / Manual)
+
+• Tutor degree and main courses
+
+• A button to request/book this session
+
+Notes:
+
+- Card is white with subtle elevation and rounded corners.
+
+- In the adapter TextViews are linked using their IDs (tvWhen, tvTutorName, etc.).
+
+- btnRequest is wired in the adapter/fragment to open a booking/request flow.
+-->
+
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -56,9 +86,26 @@
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
 
+        <TextView
+            android:id="@+id/tvTutorDegree"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BSc Computer Science"
+            android:textColor="#4B5563"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/tvTutorCourses"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CSI 2110, CEG 2136"
+            android:textColor="#6B7280"
+            android:layout_marginTop="2dp" />
+
         <!-- Request Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRequest"
+            android:backgroundTint="#FFBF24"
             style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp"
+    android:background="#FFFBEA">  <!-- soft yellow-cream background -->
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingTop="32dp"
+        android:paddingBottom="16dp">
+
+        <!-- Cute illustration -->
+        <ImageView
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:src="@drawable/mentora_app_logo"
+        android:contentDescription="Account pending approval illustration"
+        android:layout_marginBottom="16dp" />
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvPendingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Account Pending Approval"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#F4A300"
+        android:paddingBottom="8dp" />
+
+        <!-- Main message -->
+        <TextView
+            android:id="@+id/tvPendingMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Your account has been submitted and is waiting for an admin to review it. Once you are approved, you’ll be able to sign in and use all features."
+            android:textSize="15sp"
+            android:textColor="#333333"
+            android:gravity="center"
+            android:paddingBottom="16dp" />
+
+        <!-- Hint -->
+        <TextView
+            android:id="@+id/tvPendingHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="You can safely close the app for now.\nTry logging in again later."
+            android:textSize="14sp"
+            android:textColor="#555555"
+            android:gravity="center" />
+    </LinearLayout>
+
+</ScrollView>

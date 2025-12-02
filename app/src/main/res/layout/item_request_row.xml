@@ -40,14 +40,13 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnReject"
-                style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:text="Reject"
                 android:textAllCaps="false"
-                app:cornerRadius="18dp"
-                app:strokeColor="#D1D5DB"
-                app:strokeWidth="1dp" />
+                android:backgroundTint="#EF4444"
+                android:textColor="#FFFFFF"
+                app:cornerRadius="18dp" />
 
             <Space
                 android:layout_width="12dp"
@@ -59,8 +58,8 @@
                 android:layout_height="40dp"
                 android:text="Approve"
                 android:textAllCaps="false"
-                android:backgroundTint="#7C3AED"
-                android:textColor="#FFFFFF"
+                android:backgroundTint="#FFBF24"
+                android:textColor="#111827"
                 app:cornerRadius="18dp" />
         </LinearLayout>
     </LinearLayout>

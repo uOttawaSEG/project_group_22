@@ -130,6 +130,11 @@
         <!-- ===================== -->
 
         <activity
+            android:name=".auth.PendingAccountActivity"
+            android:exported="false" />
+
+
+        <activity
             android:name=".auth.RejectedScreen"
             android:exported="false" />
 

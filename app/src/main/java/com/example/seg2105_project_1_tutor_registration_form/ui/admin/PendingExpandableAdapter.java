@@ -44,23 +44,20 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
         notifyDataSetChanged();
     }
 
-    @Override
-    public long getItemId(int position) {
+    @Override public long getItemId(int position) {
         RegRequest r = items.get(position);
         String id = r.getId();
         return id != null ? id.hashCode() : position;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_pending_request_expandable, parent, false);
         return new VH(v);
     }
 
-    @Override
-    public void onBindViewHolder(@NonNull VH h, int pos) {
+    @Override public void onBindViewHolder(@NonNull VH h, int pos) {
         RegRequest r = items.get(pos);
         h.bind(r, expanded.contains(pos));
         h.header.setOnClickListener(v -> toggle(pos));
@@ -69,15 +66,11 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
     }
 
     private void toggle(int pos) {
-        if (expanded.contains(pos)) expanded.remove(pos);
-        else expanded.add(pos);
+        if (expanded.contains(pos)) expanded.remove(pos); else expanded.add(pos);
         notifyItemChanged(pos);
     }
 
-    @Override
-    public int getItemCount() {
-        return items.size();
-    }
+    @Override public int getItemCount() { return items.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
         View header, details;
@@ -117,21 +110,20 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
             } else if ("REJECTED".equals(statusUpper)) {
                 txtStatus.setBackgroundResource(R.drawable.pill_status_rejected);
             } else {
+                // default
                 txtStatus.setBackgroundResource(R.drawable.pill_pending);
             }
 
             // Email / phone lines
-            String email = safe(r.getEmail());
-            String phone = safe(r.getPhone());
-            txtEmail.setText("Email: " + (email.isEmpty() ? "—" : email));
-            txtPhone.setText("Phone: " + (phone.isEmpty() ? "—" : phone));
+            txtEmail.setText("Email: " + (safe(r.getEmail()).isEmpty() ? "—" : safe(r.getEmail())));
+            txtPhone.setText("Phone: " + (safe(r.getPhone()).isEmpty() ? "—" : safe(r.getPhone())));
 
-            // Extra (degree/teaches/wants + submitted date)
+            // Extra (multi-line): degree/teaches for tutors OR coursesWanted for students + submitted date
             StringBuilder extra = new StringBuilder();
 
             if ("TUTOR".equalsIgnoreCase(role)) {
                 String teaches = safe(r.getCoursesOfferedSummary());
-                String degree  = safe(r.getDegree()); // ok if null in model, safe() handles it
+                String degree  = safe(r.getDegree()); // ok if your model has degree; safe("") if not
                 if (!degree.isEmpty()) extra.append("Degree: ").append(degree);
                 if (!teaches.isEmpty()) {
                     if (extra.length() > 0) extra.append("\n");
@@ -142,7 +134,8 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
                 if (!wants.isEmpty()) extra.append("Looking for: ").append(wants);
             }
 
-            Long submittedAt = r.getSubmittedAt();
+            // Submitted date (from Long millis)
+            Long submittedAt = r.getSubmittedAt(); // expecting Long in your model
             if (submittedAt != null && submittedAt > 0) {
                 String when = DATE_FMT.format(new java.util.Date(submittedAt));
                 if (extra.length() > 0) extra.append("\n");
@@ -154,24 +147,14 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
             // Expand/collapse
             details.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
 
-            // --- NEW: enable/disable actions depending on current status ---
-            boolean isApproved = "APPROVED".equals(statusUpper);
-            boolean isRejected = "REJECTED".equals(statusUpper);
-            boolean isPending  = "PENDING".equals(statusUpper);
-
-            // Can always flip to the *other* state:
-            boolean canApprove = !isApproved;   // approve if PENDING or REJECTED
-            boolean canReject  = !isRejected;   // reject  if PENDING or APPROVED
-
-            btnApprove.setEnabled(canApprove);
-            btnReject.setEnabled(canReject);
-
-            btnApprove.setAlpha(canApprove ? 1f : 0.4f);
-            btnReject.setAlpha(canReject ? 1f : 0.4f);
+            // Disable actions if already decided
+            boolean pending = "PENDING".equals(statusUpper);
+            btnApprove.setEnabled(pending);
+            btnReject.setEnabled(pending);
+            btnApprove.setAlpha(pending ? 1f : 0.5f);
+            btnReject.setAlpha(pending ? 1f : 0.5f);
         }
 
-        private static String safe(String s) {
-            return s == null ? "" : s;
-        }
+        private static String safe(String s) { return s == null ? "" : s; }
     }
 }

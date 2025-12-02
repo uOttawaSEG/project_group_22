@@ -11,14 +11,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.seg2105_project_1_tutor_registration_form.R;
-import com.example.seg2105_project_1_tutor_registration_form.WelcomeActivity;
+// 🔻 You don't need WelcomeActivity here anymore, so that import is removed.
+
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 
 public class StudentRegistrationActivity extends AppCompatActivity {
 
@@ -69,7 +68,7 @@ public class StudentRegistrationActivity extends AppCompatActivity {
         etNotes     = findViewById(R.id.etNotes);
         btnRegister = findViewById(R.id.btnRegisterStudent);
 
-        // --- Register flow (now uses AccountManager to also create registrationRequests) ---
+        // --- Register flow (uses AccountManager to also create registrationRequests) ---
         btnRegister.setOnClickListener(v -> {
             String first     = s(etFirst);
             String last      = s(etLast);
@@ -102,13 +101,18 @@ public class StudentRegistrationActivity extends AppCompatActivity {
                         btnRegister.setEnabled(true);
                         Toast.makeText(this, message, Toast.LENGTH_LONG).show();
                         if (ok) {
-                            Intent i = new Intent(this, WelcomeActivity.class);
-                            i.putExtra("role", "STUDENT");
-                            i.putExtra("email", email);
-                            i.putExtra("name", first + " " + last);
-                            i.putExtra("phone", phone);
-                            i.putExtra("degreeCsv", program);
-                            i.putExtra("coursesCsv", courses);
+                            // 🔴 OLD:
+                            // Intent i = new Intent(this, WelcomeActivity.class);
+                            // i.putExtra("role", "STUDENT");
+                            // i.putExtra("email", email);
+                            // i.putExtra("name", first + " " + last);
+                            // i.putExtra("phone", phone);
+                            // i.putExtra("degreeCsv", program);
+                            // i.putExtra("coursesCsv", courses);
+
+                            // ✅ NEW: send them to the pending screen instead
+                            Intent i = new Intent(this, PendingAccountActivity.class);
+                            i.putExtra("role", "STUDENT"); // so the screen can show student-specific text if you want
                             startActivity(i);
                             finish();
                         }
@@ -118,9 +122,23 @@ public class StudentRegistrationActivity extends AppCompatActivity {
     }
 
     // --- helpers ---
-    private String s(TextInputEditText et) { return et == null || et.getText()==null ? "" : et.getText().toString().trim(); }
-    private String s(AutoCompleteTextView v) { return v == null || v.getText()==null ? "" : v.getText().toString().trim(); }
-    private String s(MultiAutoCompleteTextView v) { return v == null || v.getText()==null ? "" : v.getText().toString().trim(); }
+    private String s(TextInputEditText et) {
+        return (et == null || et.getText() == null)
+                ? ""
+                : et.getText().toString().trim();
+    }
+
+    private String s(AutoCompleteTextView v) {
+        return (v == null || v.getText() == null)
+                ? ""
+                : v.getText().toString().trim();
+    }
+
+    private String s(MultiAutoCompleteTextView v) {
+        return (v == null || v.getText() == null)
+                ? ""
+                : v.getText().toString().trim();
+    }
 
     private List<String> csvToList(String csv) {
         List<String> out = new ArrayList<>();

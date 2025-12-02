@@ -55,20 +55,16 @@ public class TutorRegisterActivity extends AppCompatActivity {
     }
 
     private void setupDropdowns() {
-        String[] degreeOptions = new String[]{
-                "High School Diploma","Associate’s","Bachelor of Arts","Bachelor of Science",
-                "Master’s","PhD / Doctorate","Post-doc"
-        };
-        String[] courseOptions = new String[]{
-                "Mathematics","Science","English","History","Computer Science",
-                "Physics","Chemistry","Biology","Economics"
-        };
+        // Degrees from arrays.xml
+        String[] degreeOptions = getResources().getStringArray(R.array.degrees_array);
         ArrayAdapter<String> degreeAdapter =
                 new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, degreeOptions);
         actDegree.setAdapter(degreeAdapter);
         actDegree.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
         actDegree.setThreshold(1);
 
+        // Courses from shared courses_array (same list used for students)
+        String[] courseOptions = getResources().getStringArray(R.array.courses_array);
         ArrayAdapter<String> courseAdapter =
                 new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, courseOptions);
         actCourses.setAdapter(courseAdapter);
@@ -82,6 +78,10 @@ public class TutorRegisterActivity extends AppCompatActivity {
         String email = textOf(etEmail);
         String pass  = textOf(etPassword);
         String phone = textOf(etPhone);
+
+        // ⭐ grab dropdown values once
+        String degreeCsv  = actText(actDegree);
+        String coursesCsv = actText(actCourses);
 
         if (first.isEmpty() || last.isEmpty() || email.isEmpty() || pass.isEmpty()) {
             toast("Please fill in first name, last name, email, and password.");
@@ -99,8 +99,15 @@ public class TutorRegisterActivity extends AppCompatActivity {
                     profile.put("firstName", first);
                     profile.put("lastName", last);
                     profile.put("phone", phone);
-                    profile.put("degreesCsv", actText(actDegree));
-                    profile.put("coursesCsv", actText(actCourses));
+
+                    // 🔻 existing CSV fields
+                    profile.put("degreesCsv", degreeCsv);
+                    profile.put("coursesCsv", coursesCsv);
+
+                    // ⭐ NEW: fields used by StudentSearchFragment
+                    profile.put("degree", degreeCsv);                       // e.g. "BSc Computer Science"
+                    profile.put("coursesOffered", csvToList(coursesCsv));   // ["CSI 2110", "CEG 2136"]
+
                     profile.put("updatedAt", System.currentTimeMillis());
                     profile.put("averageRating", 0.0);
                     profile.put("ratingsCount", 0);
