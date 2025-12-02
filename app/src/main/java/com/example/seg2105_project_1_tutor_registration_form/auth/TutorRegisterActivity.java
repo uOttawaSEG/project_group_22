@@ -102,6 +102,9 @@ public class TutorRegisterActivity extends AppCompatActivity {
                     profile.put("degreesCsv", actText(actDegree));
                     profile.put("coursesCsv", actText(actCourses));
                     profile.put("updatedAt", System.currentTimeMillis());
+                    profile.put("averageRating", 0.0);
+                    profile.put("ratingsCount", 0);
+                    profile.put("ratingsSum", 0);
 
                     repo.saveUserProfile(uid, profile)
                             .addOnSuccessListener(x -> {

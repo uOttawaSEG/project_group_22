@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginTop="8dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="#FFFFFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- Date & Time -->
+        <TextView
+            android:id="@+id/tvWhen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2025-11-21 • 11:30–12:00"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="#111827" />
+
+        <!-- Tutor Name -->
+        <TextView
+            android:id="@+id/tvTutorName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="John Doe"
+            android:textColor="#374151"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp" />
+
+        <!-- Rating -->
+        <TextView
+            android:id="@+id/tvRating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4.5 ★ (12)"
+            android:textColor="#F59E0B"
+            android:textSize="13sp"
+            android:layout_marginTop="2dp" />
+
+        <!-- Approval Mode -->
+        <TextView
+            android:id="@+id/tvMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Auto-approve"
+            android:textColor="#6B7280"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp" />
+
+        <!-- Request Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRequest"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/request_session"
+            app:cornerRadius="8dp"
+            android:layout_marginTop="10dp" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -49,4 +49,23 @@
     <string name="error_generic">Something went wrong. Please try again.</string>
     <string name="no_tutors_found">No tutors found.</string>
 
+    <!-- Student Home -->
+    <string name="student_home_title">Student Home</string>
+    <string name="student_home_subtitle">Find tutors and book sessions.</string>
+
+    <!-- Search -->
+    <string name="search">Search</string>
+    <string name="search_hint">Search for tutors…</string>
+
+    <!-- Session Actions -->
+    <string name="request_session">Request Session</string>
+
+    <!-- Student Tabs -->
+    <string name="tab_my_sessions">My Sessions</string>
+    <string name="tab_search">Search</string>
+
+    <!-- Student Empty States -->
+    <string name="empty_student_sessions">No sessions booked yet.</string>
+    <string name="no_slots_found">No available slots found.</string>
+
 </resources>
