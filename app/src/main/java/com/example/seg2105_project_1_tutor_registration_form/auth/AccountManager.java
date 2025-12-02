@@ -99,6 +99,7 @@ public class AccountManager {
             data.put("studyYear", studyYear);
             data.put("coursesWanted", coursesWanted);
             data.put("notes", notes);
+            data.put("status", "PENDING");   // NEW: gate on profile too
 
             repo.saveUserProfile(uid, data).addOnCompleteListener(save -> {
                 if (!save.isSuccessful()) {
@@ -164,6 +165,7 @@ public class AccountManager {
             data.put("averageRating", 0.0);
             data.put("ratingsCount", 0);
             data.put("ratingsSum", 0);
+            data.put("status", "PENDING");   // NEW
 
             repo.saveUserProfile(uid, data).addOnCompleteListener(save -> {
                 if (!save.isSuccessful()) {

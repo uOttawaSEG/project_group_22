@@ -18,8 +18,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.seg2105_project_1_tutor_registration_form.R;
 import com.example.seg2105_project_1_tutor_registration_form.data.FirebaseRepository;
 import com.example.seg2105_project_1_tutor_registration_form.data.FirestoreRegistrationRepository;
-import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,14 +55,10 @@ public class TutorRegisterActivity extends AppCompatActivity {
     }
 
     private void setupDropdowns() {
-        String[] degreeOptions = new String[]{
-                "High School Diploma","Associate’s","Bachelor of Arts","Bachelor of Science",
-                "Master’s","PhD / Doctorate","Post-doc"
-        };
-        String[] courseOptions = new String[]{
-                "Mathematics","Science","English","History","Computer Science",
-                "Physics","Chemistry","Biology","Economics"
-        };
+        // Use arrays from res/values/arrays.xml
+        String[] degreeOptions = getResources().getStringArray(R.array.degrees_array);
+        String[] courseOptions = getResources().getStringArray(R.array.courses_interested);
+
         ArrayAdapter<String> degreeAdapter =
                 new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, degreeOptions);
         actDegree.setAdapter(degreeAdapter);
@@ -105,6 +101,7 @@ public class TutorRegisterActivity extends AppCompatActivity {
                     profile.put("averageRating", 0.0);
                     profile.put("ratingsCount", 0);
                     profile.put("ratingsSum", 0);
+                    profile.put("status", "PENDING"); // (optional, but good to have)
 
                     repo.saveUserProfile(uid, profile)
                             .addOnSuccessListener(x -> {

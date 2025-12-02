@@ -6,7 +6,8 @@
     android:layout_marginHorizontal="16dp"
     android:layout_marginTop="10dp"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -45,8 +46,9 @@
                 android:layout_height="40dp"
                 android:text="Reject"
                 android:textAllCaps="false"
+                android:textColor="#DC2626"
                 app:cornerRadius="18dp"
-                app:strokeColor="#D1D5DB"
+                app:strokeColor="#DC2626"
                 app:strokeWidth="1dp" />
 
             <Space
@@ -59,7 +61,7 @@
                 android:layout_height="40dp"
                 android:text="Approve"
                 android:textAllCaps="false"
-                android:backgroundTint="#7C3AED"
+                android:backgroundTint="#FACC15"
                 android:textColor="#FFFFFF"
                 app:cornerRadius="18dp" />
         </LinearLayout>

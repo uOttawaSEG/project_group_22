@@ -133,5 +133,10 @@
             android:name=".auth.RejectedScreen"
             android:exported="false" />
 
+        <activity
+            android:name=".auth.PendingApprovalActivity"
+            android:exported="false" />
+
+
     </application>
 </manifest>

@@ -36,6 +36,26 @@
             android:textSize="14sp"
             android:layout_marginTop="4dp" />
 
+        <!-- Tutor Degree -->
+        <TextView
+            android:id="@+id/tvTutorDegree"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="BSc Computer Science"
+            android:textSize="13sp"
+            android:textColor="#6B7280" />
+
+        <!-- Tutor Subjects -->
+        <TextView
+            android:id="@+id/tvTutorSubjects"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="CSI2110, MAT2377"
+            android:textSize="13sp"
+            android:textColor="#6B7280" />
+
         <!-- Rating -->
         <TextView
             android:id="@+id/tvRating"
@@ -44,7 +64,7 @@
             android:text="4.5 ★ (12)"
             android:textColor="#F59E0B"
             android:textSize="13sp"
-            android:layout_marginTop="2dp" />
+            android:layout_marginTop="4dp" />
 
         <!-- Approval Mode -->
         <TextView
@@ -62,9 +82,12 @@
             style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:text="@string/request_session"
-            app:cornerRadius="8dp"
-            android:layout_marginTop="10dp" />
+            android:textAllCaps="false"
+            android:textColor="#111827"
+            app:cornerRadius="999dp"
+            app:backgroundTint="#FACC15" />
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

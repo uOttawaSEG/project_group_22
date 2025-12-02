@@ -2,6 +2,7 @@ package com.example.seg2105_project_1_tutor_registration_form.ui.student;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -69,6 +70,11 @@ public class StudentSearchFragment extends Fragment {
         public String tutorEmail;
         public float tutorAverageRating;
         public int tutorRatingCount;
+
+        // new fields
+        public String tutorDegree;
+        public String tutorSubjects;
+
         public String date;
         public String startTime;
         public String endTime;
@@ -140,16 +146,18 @@ public class StudentSearchFragment extends Fragment {
         list.setVisibility(View.GONE);
         progress.setVisibility(View.GONE);
 
+        // Initial load: show all upcoming available slots from all tutors
+        requestedSlotIds.clear();
+        showLoading(true);
+        searchSlotsByCourse("");
+
         return v;
     }
 
     private void performSearch() {
         String query = etSearch.getText().toString().trim();
-        if (query.isEmpty()) {
-            toast("Please enter a course code");
-            return;
-        }
 
+        // If query is empty → show all tutors with future slots (no filter)
         InputMethodManager imm = (InputMethodManager) requireContext()
                 .getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) {
@@ -158,13 +166,13 @@ public class StudentSearchFragment extends Fragment {
 
         requestedSlotIds.clear();
         showLoading(true);
-        searchSlotsByCourse(query);
+        searchSlotsByCourse(query.isEmpty() ? "" : query);
     }
 
     // ========== FIRESTORE SEARCH LOGIC ==========
 
     private void searchSlotsByCourse(String courseCode) {
-        String searchCode = courseCode.trim().toUpperCase();
+        String searchCode = courseCode == null ? "" : courseCode.trim().toUpperCase();
 
         getStudentBookedTimes(bookedTimes -> {
             db.collection("users").get().addOnSuccessListener(allUsers -> {
@@ -174,24 +182,31 @@ public class StudentSearchFragment extends Fragment {
                     String role = nz(doc.getString("role"));
                     if (!"TUTOR".equalsIgnoreCase(role)) continue;
 
-                    boolean matches = false;
+                    boolean matches;
 
-                    // Check 'coursesOffered' field (List format)
-                    List<String> coursesList = (List<String>) doc.get("coursesOffered");
-                    if (coursesList != null) {
-                        for (String c : coursesList) {
-                            if (c != null && c.toUpperCase().contains(searchCode)) {
-                                matches = true;
-                                break;
+                    // If no course filter → include all tutors
+                    if (searchCode.isEmpty()) {
+                        matches = true;
+                    } else {
+                        matches = false;
+
+                        // Check 'coursesOffered' field (List format)
+                        List<String> coursesList = (List<String>) doc.get("coursesOffered");
+                        if (coursesList != null) {
+                            for (String c : coursesList) {
+                                if (c != null && c.toUpperCase().contains(searchCode)) {
+                                    matches = true;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    // Also check 'coursesCsv' field (String format)
-                    if (!matches) {
-                        String coursesCsv = nz(doc.getString("coursesCsv"));
-                        if (coursesCsv.toUpperCase().contains(searchCode)) {
-                            matches = true;
+                        // Also check 'coursesCsv' field (String format)
+                        if (!matches) {
+                            String coursesCsv = nz(doc.getString("coursesCsv"));
+                            if (coursesCsv.toUpperCase().contains(searchCode)) {
+                                matches = true;
+                            }
                         }
                     }
 
@@ -232,6 +247,18 @@ public class StudentSearchFragment extends Fragment {
             float rating = avgRating != null ? avgRating.floatValue() : 0f;
             int count = ratingCount != null ? ratingCount.intValue() : 0;
 
+            // degree + subjects from tutor doc
+            String tutorDegree = nz(tutorDoc.getString("degree")); // e.g. "BSc Computer Science"
+            List<String> coursesList = (List<String>) tutorDoc.get("coursesOffered");
+
+            // 🔥 make this effectively final so it can be used inside the lambda
+            final String subjectsLine;
+            if (coursesList != null && !coursesList.isEmpty()) {
+                subjectsLine = TextUtils.join(", ", coursesList);
+            } else {
+                subjectsLine = "";
+            }
+
             db.collection("users").document(tutorId).collection("availabilitySlots")
                     .whereEqualTo("booked", false)
                     .get()
@@ -255,6 +282,11 @@ public class StudentSearchFragment extends Fragment {
                             item.tutorEmail = tutorEmail;
                             item.tutorAverageRating = rating;
                             item.tutorRatingCount = count;
+
+                            // new fields
+                            item.tutorDegree = tutorDegree;
+                            item.tutorSubjects = subjectsLine;
+
                             item.date = date;
                             item.startTime = startTime;
                             item.endTime = endTime;
@@ -528,6 +560,22 @@ public class StudentSearchFragment extends Fragment {
             h.tvWhen.setText(when);
             h.tvTutorName.setText(item.tutorName);
 
+            // Degree
+            if (item.tutorDegree != null && !item.tutorDegree.isEmpty()) {
+                h.tvTutorDegree.setText(item.tutorDegree);
+                h.tvTutorDegree.setVisibility(View.VISIBLE);
+            } else {
+                h.tvTutorDegree.setVisibility(View.GONE);
+            }
+
+            // Subjects they teach
+            if (item.tutorSubjects != null && !item.tutorSubjects.isEmpty()) {
+                h.tvTutorSubjects.setText(item.tutorSubjects);
+                h.tvTutorSubjects.setVisibility(View.VISIBLE);
+            } else {
+                h.tvTutorSubjects.setVisibility(View.GONE);
+            }
+
             if (item.tutorRatingCount > 0) {
                 String ratingText = String.format(Locale.getDefault(), "%.1f ★ (%d)",
                         item.tutorAverageRating, item.tutorRatingCount);
@@ -548,13 +596,15 @@ public class StudentSearchFragment extends Fragment {
         public int getItemCount() { return items.size(); }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView tvWhen, tvTutorName, tvRating, tvMode;
+            TextView tvWhen, tvTutorName, tvTutorDegree, tvTutorSubjects, tvRating, tvMode;
             Button btnRequest;
 
             VH(@NonNull View v) {
                 super(v);
                 tvWhen = v.findViewById(R.id.tvWhen);
                 tvTutorName = v.findViewById(R.id.tvTutorName);
+                tvTutorDegree = v.findViewById(R.id.tvTutorDegree);
+                tvTutorSubjects = v.findViewById(R.id.tvTutorSubjects);
                 tvRating = v.findViewById(R.id.tvRating);
                 tvMode = v.findViewById(R.id.tvMode);
                 btnRequest = v.findViewById(R.id.btnRequest);

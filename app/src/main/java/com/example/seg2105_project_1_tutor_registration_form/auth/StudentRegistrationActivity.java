@@ -22,15 +22,6 @@ import java.util.Map;
 
 public class StudentRegistrationActivity extends AppCompatActivity {
 
-    private static final String[] STUDY_YEARS = new String[] {
-            "1st year", "2nd year", "3rd year", "4th year", "5th+", "Graduate"
-    };
-
-    private static final String[] COURSES = new String[] {
-            "SEG 2105", "CEG 2136", "CSI 2110", "MAT 1348", "MAT 2377",
-            "CSI 2101", "ELG 2138", "ITI 1100"
-    };
-
     // UI refs
     private TextInputEditText etFirst, etLast, etEmail, etPassword, etPhone, etStudentId, etProgram, etNotes;
     private AutoCompleteTextView actStudyYear;
@@ -42,17 +33,20 @@ public class StudentRegistrationActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student_register);
 
-        // --- Adapters you already had ---
+        // --- Study year dropdown using arrays.xml ---
         actStudyYear = findViewById(R.id.actStudyYear);
+        String[] years = getResources().getStringArray(R.array.study_years);
         ArrayAdapter<String> yearAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_dropdown_item_1line, STUDY_YEARS
+                this, android.R.layout.simple_dropdown_item_1line, years
         );
         actStudyYear.setAdapter(yearAdapter);
         actStudyYear.setOnClickListener(v -> actStudyYear.showDropDown());
 
+        // --- Courses dropdown using the same list as tutors/search ---
         actCourses = findViewById(R.id.actCoursesInterested);
+        String[] courseOptions = getResources().getStringArray(R.array.courses_interested);
         ArrayAdapter<String> courseAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_dropdown_item_1line, COURSES
+                this, android.R.layout.simple_dropdown_item_1line, courseOptions
         );
         actCourses.setAdapter(courseAdapter);
         actCourses.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());

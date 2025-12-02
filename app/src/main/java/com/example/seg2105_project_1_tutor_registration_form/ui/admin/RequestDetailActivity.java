@@ -16,6 +16,7 @@ import com.example.seg2105_project_1_tutor_registration_form.data.RegistrationRe
 import com.example.seg2105_project_1_tutor_registration_form.model.RegRequest;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;   // ✅ NEW
 
 public class RequestDetailActivity extends AppCompatActivity {
 
@@ -83,14 +84,19 @@ public class RequestDetailActivity extends AppCompatActivity {
             Snackbar.make(findViewById(android.R.id.content), "Not signed in as admin.", Snackbar.LENGTH_LONG).show();
             return;
         }
-        repo.approve(req.getId(), adminUid).addOnSuccessListener(unused -> {
-            Snackbar.make(findViewById(android.R.id.content), R.string.approved_snack, Snackbar.LENGTH_SHORT).show();
-            finish();
-        }).addOnFailureListener(e ->
-                Snackbar.make(findViewById(android.R.id.content),
-                        getString(R.string.approve_failed) + ": " + e.getMessage(),
-                        Snackbar.LENGTH_LONG).show()
-        );
+        repo.approve(req.getId(), adminUid)
+                .addOnSuccessListener(unused -> {
+                    // ✅ keep /users and /registrationRequests in sync
+                    syncUserStatus("APPROVED");
+                    Snackbar.make(findViewById(android.R.id.content),
+                            R.string.approved_snack, Snackbar.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e ->
+                        Snackbar.make(findViewById(android.R.id.content),
+                                getString(R.string.approve_failed) + ": " + e.getMessage(),
+                                Snackbar.LENGTH_LONG).show()
+                );
     }
 
     private void showRejectDialog() {
@@ -114,13 +120,43 @@ public class RequestDetailActivity extends AppCompatActivity {
         }
         repo.reject(req.getId(), adminUid, reason.isEmpty() ? null : reason)
                 .addOnSuccessListener(unused -> {
-                    Snackbar.make(findViewById(android.R.id.content), R.string.rejected_snack, Snackbar.LENGTH_SHORT).show();
+                    // ✅ keep /users and /registrationRequests in sync
+                    syncUserStatus("REJECTED");
+                    Snackbar.make(findViewById(android.R.id.content),
+                            R.string.rejected_snack, Snackbar.LENGTH_SHORT).show();
                     finish();
                 })
                 .addOnFailureListener(e ->
                         Snackbar.make(findViewById(android.R.id.content),
                                 getString(R.string.reject_failed) + ": " + e.getMessage(),
                                 Snackbar.LENGTH_LONG).show());
+    }
+
+    // --- helper to sync status in /users/{uid} ---
+    private void syncUserStatus(String newStatus) {
+        if (req == null) return;
+
+        // Prefer explicit userUid if your RegRequest has it; fall back to id (you used uid as doc id)
+        String userUid = null;
+        try {
+            userUid = req.getUserUid();   // if your model has this
+        } catch (Exception ignored) { }
+
+        if (userUid == null || userUid.isEmpty()) {
+            userUid = req.getId();
+        }
+        if (userUid == null || userUid.isEmpty()) return;
+
+        FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(userUid)
+                .update("status", newStatus)
+                .addOnFailureListener(e -> {
+                    // optional: log or show a small snack, but don’t block the admin
+                    // Snackbar.make(findViewById(android.R.id.content),
+                    //         "Profile status sync failed: " + e.getMessage(),
+                    //         Snackbar.LENGTH_SHORT).show();
+                });
     }
 
     private static String nn(String s) { return (s == null || s.isEmpty()) ? "—" : s; }

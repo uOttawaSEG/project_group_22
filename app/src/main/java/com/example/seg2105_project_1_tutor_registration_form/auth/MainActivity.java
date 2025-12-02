@@ -189,9 +189,10 @@ public class MainActivity extends AppCompatActivity {
                                         DocumentSnapshot d = q.getDocuments().get(0);
                                         handleGateDecision(d.getString("status"), d.getString("reason"), roleFromProfile);
                                     } else {
-                                        Toast.makeText(this,
-                                                "Your registration is pending admin approval.",
-                                                Toast.LENGTH_LONG).show();
+                                        // No registrationRequests doc found → treat as pending and show Pending screen
+                                        Intent i = new Intent(this, PendingApprovalActivity.class);
+                                        startActivity(i);
+                                        finish();
                                     }
                                 })
                                 .addOnFailureListener(e ->
@@ -204,20 +205,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleGateDecision(String status, String reason, String roleFromProfile) {
+        // REJECTED → RejectedScreen
         if ("REJECTED".equalsIgnoreCase(status)) {
             Intent r = new Intent(this,
                     com.example.seg2105_project_1_tutor_registration_form.auth.RejectedScreen.class);
-            if (reason != null && !reason.isEmpty()) r.putExtra("EXTRA_REASON", reason);
+            if (reason != null && !reason.isEmpty()) {
+                r.putExtra("EXTRA_REASON", reason);
+            }
             startActivity(r);
             finish();
             return;
         }
 
+        // Anything not APPROVED (including null / PENDING) → PendingApprovalActivity
         if (!"APPROVED".equalsIgnoreCase(status)) {
-            Toast.makeText(this, "Your registration is pending admin approval.", Toast.LENGTH_LONG).show();
+            Intent i = new Intent(this, PendingApprovalActivity.class);
+            startActivity(i);
+            finish();
             return;
         }
 
+        // APPROVED → route by role
         if (roleFromProfile != null &&
                 (roleFromProfile.equalsIgnoreCase("admin") ||
                         roleFromProfile.equalsIgnoreCase("administrator"))) {

@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-
+        <!-- Header card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -36,7 +36,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-
+        <!-- Content card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -53,7 +53,7 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-
+                <!-- When -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -67,7 +67,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="2025-11-11 Â· 10:00-10:30"
+                    android:text="2025-11-11 • 10:00–10:30"
                     android:textColor="@android:color/black"
                     android:textSize="14sp" />
 
@@ -75,7 +75,7 @@
                     android:layout_width="0dp"
                     android:layout_height="16dp" />
 
-
+                <!-- Status -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -89,7 +89,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="approved"
+                    android:text="APPROVED"
                     android:textColor="@android:color/black"
                     android:textSize="14sp" />
 
@@ -97,7 +97,7 @@
                     android:layout_width="0dp"
                     android:layout_height="16dp" />
 
-
+                <!-- Student -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -129,7 +129,51 @@
                     android:layout_width="0dp"
                     android:layout_height="16dp" />
 
+                <!-- Program -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Program"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
+                <TextView
+                    android:id="@+id/tvProgram"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="—"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="16dp" />
+
+                <!-- Subject -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Subject"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvSubject"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="—"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="16dp" />
+
+                <!-- Notes -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -143,10 +187,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Example session notes here."
+                    android:text="—"
                     android:textColor="@android:color/black"
                     android:textSize="14sp" />
-
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
