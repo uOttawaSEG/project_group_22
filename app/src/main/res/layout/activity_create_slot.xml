@@ -11,88 +11,86 @@
         android:id="@+id/scroll"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:fillViewport="false"
-        android:clipToPadding="false"
         android:padding="20dp"
+        android:clipToPadding="false"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bottomBar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottomBar">
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Cute rounded card that holds the full form -->
+        <!-- Rounded card holding the whole form -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
-            android:padding="20dp">
+            app:cardCornerRadius="26dp"
+            app:cardUseCompatPadding="true"
+            app:cardElevation="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="20dp">
 
                 <!-- Title -->
                 <TextView
-                    android:layout_width="match_parent"
+                    android:id="@+id/tvTitle"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ Create Availability Slot"
+                    android:textSize="20sp"
                     android:textStyle="bold"
-                    android:textSize="22sp"
-                    android:textColor="#1F2937" />
+                    android:textColor="#222222" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="Pick a date and a 30-minute time window"
                     android:textSize="13sp"
-                    android:textColor="#6B7280" />
+                    android:textColor="#777777" />
 
-                <!-- Divider -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="16dp"
-                    android:background="#F1F5F9" />
-
-                <!-- Date -->
+                <!-- Date section -->
                 <TextView
-                    android:layout_width="match_parent"
+                    android:id="@+id/labelDate"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="18dp"
                     android:text="Date"
                     android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#111827" />
+                    android:textSize="14sp"
+                    android:textColor="#333333" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPickDate"
+                    style="@style/Widget.MaterialComponents.Button"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:text="Set date"
                     android:textAllCaps="false"
+                    android:textStyle="bold"
                     android:textColor="#FFFFFF"
-                    android:backgroundTint="#ffbf24"
-                    app:cornerRadius="26dp"
-                    app:icon="@drawable/ic_outline_event_24"
-                    app:iconPadding="8dp" />
+                    app:icon="@drawable/ic_calendar_24"
+                    app:iconPadding="8dp"
+                    app:iconGravity="textStart"
+                    app:cornerRadius="24dp"
+                    app:backgroundTint="#FFBF24" />
 
                 <TextView
                     android:id="@+id/tvDate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="YYYY-MM-DD"
-                    android:textColor="#6B7280" />
+                    android:layout_marginTop="8dp"
+                    android:text="2025-12-02"
+                    android:textSize="14sp"
+                    android:textColor="#555555" />
 
-                <!-- Time labels -->
+                <!-- Time labels row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="22dp"
                     android:orientation="horizontal">
 
                     <TextView
@@ -101,8 +99,8 @@
                         android:layout_weight="1"
                         android:text="Start time"
                         android:textStyle="bold"
-                        android:textSize="16sp"
-                        android:textColor="#111827" />
+                        android:textSize="14sp"
+                        android:textColor="#333333" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -111,194 +109,133 @@
                         android:gravity="end"
                         android:text="End time"
                         android:textStyle="bold"
-                        android:textSize="16sp"
-                        android:textColor="#111827" />
+                        android:textSize="14sp"
+                        android:textColor="#333333" />
                 </LinearLayout>
 
-                <!-- Time inputs: typed HH:MM + AM/PM dropdown; end time is auto-computed -->
+                <!-- Time fields row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:orientation="horizontal">
 
-                    <!-- Start time container -->
-                    <LinearLayout
+                    <!-- Start time (user types 12-hour time) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilStartTime"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
-                        android:layout_height="48dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginEnd="6dp"
-                        android:background="#F9FAFB"
-                        android:orientation="horizontal"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
-                        android:gravity="center_vertical">
+                        app:startIconDrawable="@drawable/ic_time_24">
 
-                        <EditText
+                        <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etStartTime"
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="2"
-                            android:layout_marginEnd="8dp"
-                            android:hint="HH:MM"
-                            android:inputType="time"
-                            android:maxLength="5"
-                            android:singleLine="true"
-                            android:textColor="#111827"
-                            android:textSize="14sp" />
-
-                        <androidx.appcompat.widget.AppCompatSpinner
-                            android:id="@+id/spStartAmPm"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:entries="@array/am_pm_array"
-                            android:spinnerMode="dropdown" />
-                    </LinearLayout>
+                            android:hint="e.g. 2:00"
+                            android:inputType="time" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
                     <Space
                         android:layout_width="12dp"
-                        android:layout_height="0dp" />
+                        android:layout_height="wrap_content" />
 
-                    <!-- End time display (auto +30min from start) -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPickEnd"
-                        style="?attr/materialButtonOutlinedStyle"
+                    <!-- End time (auto-computed but matches styling) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilEndTime"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
-                        android:layout_height="48dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Auto-computed"
-                        android:textAllCaps="false"
-                        android:textColor="#6B7280"
-                        android:enabled="false"
-                        app:cornerRadius="26dp"
-                        app:strokeColor="#E5E7EB"
-                        app:strokeWidth="1dp"
-                        app:icon="@drawable/ic_outline_access_time_24"
-                        app:iconPadding="8dp" />
+                        app:startIconDrawable="@drawable/ic_time_24">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etEndTime"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:enabled="false"
+                            android:focusable="false"
+                            android:hint="Auto-computed" />
+                    </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-                <!-- Chosen time echo -->
+                <!-- AM/PM spinner used by spStartAmPm in code -->
+                <Spinner
+                    android:id="@+id/spStartAmPm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" />
+
+                <!-- Manual approval row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/tvStart"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="--:--"
-                        android:textColor="#6B7280" />
-
-                    <TextView
-                        android:id="@+id/tvEnd"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="end"
-                        android:text="--:--"
-                        android:textColor="#6B7280" />
-                </LinearLayout>
-
-                <!-- Manual approval switch -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
-                    app:cardBackgroundColor="#FAFAFF"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    android:padding="14dp">
+                    android:layout_marginTop="24dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Manual approval"
-                                android:textStyle="bold"
-                                android:textSize="15sp"
-                                android:textColor="#111827" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Turn on to review each request before booking"
-                                android:textSize="12sp"
-                                android:textColor="#6B7280" />
-                        </LinearLayout>
-
-                        <!-- same ID used by code -->
-                        <Switch
-                            android:id="@+id/swAutoApprove"
+                        <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:checked="false" />
+                            android:text="Manual approval"
+                            android:textStyle="bold"
+                            android:textSize="14sp"
+                            android:textColor="#333333" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Turn on to review each request before booking"
+                            android:textSize="12sp"
+                            android:textColor="#777777" />
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/swAutoApprove"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Sticky bottom bar -->
+    <!-- Bottom bar with primary action -->
     <LinearLayout
         android:id="@+id/bottomBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:background="#FFFDF5"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBack"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="110dp"
-            android:layout_height="48dp"
-            android:text="Back"
-            android:textAllCaps="false"
-            android:textColor="#111827"
-            app:cornerRadius="20dp"
-            app:strokeColor="#E5E7EB"
-            app:strokeWidth="1dp"
-            app:icon="@drawable/ic_outline_arrow_back_24"
-            app:iconPadding="6dp" />
-
-        <Space
-            android:layout_width="14dp"
-            android:layout_height="0dp"/>
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:background="#00FFFFFF" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSave"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="Create slot"
+            android:text="Save slot"
             android:textAllCaps="false"
+            android:textStyle="bold"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#ffbf24"
             app:cornerRadius="24dp"
-            app:icon="@drawable/ic_outline_add_24"
-            app:iconPadding="6dp" />
+            app:backgroundTint="#FFBF24" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

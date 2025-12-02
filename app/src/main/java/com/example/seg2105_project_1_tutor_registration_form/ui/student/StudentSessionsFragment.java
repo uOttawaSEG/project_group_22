@@ -41,7 +41,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - Status indicator pills
  * - Cancel pending sessions
  * - Cancel approved sessions (if > 24h before start)
- * - Rate tutors for completed sessions
+ * - Rate tutors for completed sessions (1–5 stars)
+ *
+ * Data model:
+ * - Requests:  users/{tutorId}/sessionRequests/{requestId}
+ * - Sessions:  users/{tutorId}/sessions/{sessionId}
  */
 public class StudentSessionsFragment extends Fragment {
 
@@ -55,23 +59,24 @@ public class StudentSessionsFragment extends Fragment {
         return f;
     }
 
+    /** Host activity can listen when sessions are updated (cancel, rating, etc.). */
     public interface Host {
         void onSessionUpdated();
     }
 
-    // Data class for student sessions
+    /** Flattened view of a student's session/request across all tutors. */
     public static class StudentSessionItem {
         public String id;
         public String tutorId;
         public String tutorName;
         public String slotId;
-        public String date;
-        public String startTime;
-        public String endTime;
+        public String date;        // yyyy-MM-dd
+        public String startTime;   // HH:mm
+        public String endTime;     // HH:mm (optional)
         public String subject;
-        public String status;
+        public String status;      // PENDING / APPROVED / REJECTED / CANCELLED / COMPLETED
         public long requestedAtMillis;
-        public int myRating;
+        public int myRating;       // 0 if not rated, 1–5 otherwise
     }
 
     private Host host;
@@ -81,6 +86,8 @@ public class StudentSessionsFragment extends Fragment {
     private View progress, empty;
     private RecyclerView list;
     private SessionsAdapter adapter;
+
+    // ---------- Fragment lifecycle ----------
 
     @Override
     public void onAttach(@NonNull Context ctx) {
@@ -104,7 +111,8 @@ public class StudentSessionsFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_simple_list, container, false);
 
@@ -144,12 +152,11 @@ public class StudentSessionsFragment extends Fragment {
 
         showLoading(true);
 
-        // Get all tutors to query their requests/sessions
+        // Step 1: get all tutors (role "TUTOR" or "tutor")
         db.collection("users").whereEqualTo("role", "TUTOR").get()
                 .addOnSuccessListener(tutorSnap -> {
                     List<DocumentSnapshot> tutorDocs = new ArrayList<>(tutorSnap.getDocuments());
 
-                    // Also try lowercase role
                     db.collection("users").whereEqualTo("role", "tutor").get()
                             .addOnSuccessListener(tutorSnap2 -> {
                                 for (DocumentSnapshot d : tutorSnap2.getDocuments()) {
@@ -184,13 +191,13 @@ public class StudentSessionsFragment extends Fragment {
         }
 
         List<StudentSessionItem> allSessions = Collections.synchronizedList(new ArrayList<>());
-        AtomicInteger remaining = new AtomicInteger(tutorDocs.size() * 2);
+        AtomicInteger remaining = new AtomicInteger(tutorDocs.size() * 2); // requests + sessions per tutor
 
         for (DocumentSnapshot tutorDoc : tutorDocs) {
             String tutorId = tutorDoc.getId();
             String tutorName = getTutorDisplayName(tutorDoc);
 
-            // Fetch requests for this student
+            // 1) Fetch pending/rejected/cancelled requests for this student
             db.collection("users").document(tutorId).collection("sessionRequests")
                     .whereEqualTo("studentId", studentId)
                     .get()
@@ -215,7 +222,10 @@ public class StudentSessionsFragment extends Fragment {
                                 item.requestedAtMillis = ms != null ? ms : 0L;
                             }
 
-                            if ("PENDING".equals(item.status) || "REJECTED".equals(item.status) || "CANCELLED".equals(item.status)) {
+                            // Only show non-accepted requests here
+                            if ("PENDING".equals(item.status)
+                                    || "REJECTED".equals(item.status)
+                                    || "CANCELLED".equals(item.status)) {
                                 allSessions.add(item);
                             }
                         }
@@ -223,11 +233,13 @@ public class StudentSessionsFragment extends Fragment {
                     })
                     .addOnFailureListener(e -> checkComplete(remaining, allSessions));
 
-            // Fetch sessions for this student
+            // 2) Fetch actual sessions for this student (APPROVED / COMPLETED)
             db.collection("users").document(tutorId).collection("sessions")
                     .whereEqualTo("studentId", studentId)
                     .get()
                     .addOnSuccessListener(sessSnap -> {
+                        long now = System.currentTimeMillis();
+
                         for (DocumentSnapshot d : sessSnap.getDocuments()) {
                             StudentSessionItem item = new StudentSessionItem();
                             item.id = d.getId();
@@ -241,8 +253,12 @@ public class StudentSessionsFragment extends Fragment {
 
                             String status = nz(d.getString("status")).toUpperCase();
                             long startMs = toMillisSafe(item.date, item.startTime);
-                            if ("APPROVED".equals(status) && startMs < System.currentTimeMillis()) {
+
+                            // Auto-complete: if approved and start time has passed, treat as COMPLETED
+                            if ("APPROVED".equals(status) && startMs < now) {
                                 item.status = "COMPLETED";
+                                // Optional: persist this change back to Firestore
+                                d.getReference().update("status", "COMPLETED");
                             } else {
                                 item.status = status;
                             }
@@ -265,7 +281,7 @@ public class StudentSessionsFragment extends Fragment {
             Collections.sort(sorted, (a, b) -> {
                 long aMs = toMillisSafe(a.date, a.startTime);
                 long bMs = toMillisSafe(b.date, b.startTime);
-                return Long.compare(bMs, aMs);
+                return Long.compare(bMs, aMs); // newest first
             });
 
             showLoading(false);
@@ -360,6 +376,13 @@ public class StudentSessionsFragment extends Fragment {
 
     // ========== RATING ==========
 
+    /**
+     * Rate a tutor for a completed session (1–5 stars).
+     * Stores:
+     * - users/{tutorId}/ratings/{studentId_sessionId}
+     * - session's studentRating
+     * - tutor's averageRating & ratingCount
+     */
     private void rateTutor(StudentSessionItem item, int rating) {
         if (rating < 1 || rating > 5) {
             toast("Rating must be between 1 and 5");
@@ -380,10 +403,12 @@ public class StudentSessionsFragment extends Fragment {
             String startTime = nz(sessionSnap.getString("startTime"));
             long sessionStart = toMillisSafe(date, startTime);
 
+            // Safety: cannot rate future sessions
             if (sessionStart > System.currentTimeMillis()) {
                 throw new IllegalStateException("Cannot rate future sessions");
             }
 
+            // Check if this student already rated this session
             DocumentSnapshot existingRating = trx.get(ratingRef);
             boolean isNewRating = !existingRating.exists();
             int oldRating = 0;
@@ -392,6 +417,7 @@ public class StudentSessionsFragment extends Fragment {
                 oldRating = old != null ? old.intValue() : 0;
             }
 
+            // Get current tutor aggregate rating
             DocumentSnapshot tutorSnap = trx.get(tutorRef);
             double currentAvg = 0;
             long currentCount = 0;
@@ -413,6 +439,7 @@ public class StudentSessionsFragment extends Fragment {
                 newAvg = (totalWithoutOld + rating) / newCount;
             }
 
+            // Write/update rating doc
             Map<String, Object> ratingData = new HashMap<>();
             ratingData.put("studentId", studentId);
             ratingData.put("sessionId", item.id);
@@ -420,8 +447,10 @@ public class StudentSessionsFragment extends Fragment {
             ratingData.put("timestamp", Timestamp.now());
             trx.set(ratingRef, ratingData);
 
+            // Store rating on the session
             trx.update(sessionRef, "studentRating", rating);
 
+            // Update tutor aggregate fields
             Map<String, Object> tutorUpdate = new HashMap<>();
             tutorUpdate.put("averageRating", newAvg);
             tutorUpdate.put("ratingCount", newCount);
@@ -431,6 +460,7 @@ public class StudentSessionsFragment extends Fragment {
         }).addOnSuccessListener(v -> {
             toast("Rating saved!");
             item.myRating = rating;
+            if (host != null) host.onSessionUpdated();
         }).addOnFailureListener(e -> {
             toast(e.getMessage() != null ? e.getMessage() : "Failed to save rating");
             refresh();
@@ -466,14 +496,18 @@ public class StudentSessionsFragment extends Fragment {
         return name.isEmpty() ? "Tutor" : name;
     }
 
-    private static String nz(String s) { return s == null ? "" : s; }
+    private static String nz(String s) {
+        return s == null ? "" : s;
+    }
 
     private static long toMillisSafe(String yMd, String hm) {
         try {
             return new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
                     .parse((yMd == null ? "" : yMd) + " " + (hm == null ? "" : hm))
                     .getTime();
-        } catch (Exception e) { return 0L; }
+        } catch (Exception e) {
+            return 0L;
+        }
     }
 
     private void showCancelDialog(StudentSessionItem item, boolean isPending) {
@@ -514,14 +548,17 @@ public class StudentSessionsFragment extends Fragment {
         public void onBindViewHolder(@NonNull VH h, int position) {
             StudentSessionItem item = items.get(position);
 
+            // When
             String when = item.date + " • " + item.startTime;
             if (item.endTime != null && !item.endTime.isEmpty()) {
                 when += "–" + item.endTime;
             }
             h.tvWhen.setText(when);
 
+            // Tutor name
             h.tvTutor.setText("with " + (item.tutorName.isEmpty() ? "Tutor" : item.tutorName));
 
+            // Subject (optional)
             if (item.subject != null && !item.subject.isEmpty()) {
                 h.tvSubject.setText(item.subject);
                 h.tvSubject.setVisibility(View.VISIBLE);
@@ -529,8 +566,10 @@ public class StudentSessionsFragment extends Fragment {
                 h.tvSubject.setVisibility(View.GONE);
             }
 
+            // Status pill
             bindStatusPill(h.tvStatus, item.status);
 
+            // Rating bar: only for COMPLETED sessions
             if ("COMPLETED".equals(item.status)) {
                 h.ratingLayout.setVisibility(View.VISIBLE);
                 h.ratingBar.setRating(item.myRating);
@@ -543,6 +582,7 @@ public class StudentSessionsFragment extends Fragment {
                 h.ratingLayout.setVisibility(View.GONE);
             }
 
+            // Cancel button visibility + behavior
             boolean canCancel = false;
             if ("PENDING".equals(item.status)) {
                 canCancel = true;
@@ -559,7 +599,9 @@ public class StudentSessionsFragment extends Fragment {
         }
 
         @Override
-        public int getItemCount() { return items.size(); }
+        public int getItemCount() {
+            return items.size();
+        }
 
         class VH extends RecyclerView.ViewHolder {
             TextView tvWhen, tvTutor, tvSubject, tvStatus;
@@ -580,6 +622,7 @@ public class StudentSessionsFragment extends Fragment {
         }
     }
 
+    /** Status pill styling for the little tags (PENDING / APPROVED / COMPLETED / etc.). */
     private void bindStatusPill(TextView tv, String status) {
         tv.setText(status);
         int bgRes;

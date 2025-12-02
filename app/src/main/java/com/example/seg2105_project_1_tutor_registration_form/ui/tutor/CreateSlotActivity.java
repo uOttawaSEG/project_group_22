@@ -4,10 +4,10 @@ import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,15 +18,16 @@ import com.example.seg2105_project_1_tutor_registration_form.auth.AuthIdProvider
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.FirestoreTutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.data.tutor.TutorRepository;
 import com.example.seg2105_project_1_tutor_registration_form.model.tutor.AvailabilitySlot;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.util.Calendar;
 import java.util.Locale;
 
 public class CreateSlotActivity extends AppCompatActivity {
 
-    private TextView tvDate, tvStart, tvEnd;
-    private Switch swAutoApprove;
-    private Button btnPickDate, btnPickEnd, btnSave, btnBack;
+    private TextView tvDate;
+    private SwitchMaterial swAutoApprove;
+    private Button btnPickDate, btnSave;
     private EditText etStartTime;
     private Spinner spStartAmPm;
 
@@ -50,29 +51,27 @@ public class CreateSlotActivity extends AppCompatActivity {
         repo = new FirestoreTutorRepository();
 
         tvDate        = findViewById(R.id.tvDate);
-        tvStart       = findViewById(R.id.tvStart);
-        tvEnd         = findViewById(R.id.tvEnd);
         swAutoApprove = findViewById(R.id.swAutoApprove);
 
         btnPickDate   = findViewById(R.id.btnPickDate);
-        btnPickEnd    = findViewById(R.id.btnPickEnd);   // disabled; end is auto-computed
         btnSave       = findViewById(R.id.btnSave);
-        btnBack       = findViewById(R.id.btnBack);
 
         etStartTime   = findViewById(R.id.etStartTime);
         spStartAmPm   = findViewById(R.id.spStartAmPm);
 
-        btnPickDate.setOnClickListener(v -> showDatePicker());
-
-        // We’re auto-computing end = start + 30, so disable manual end picking
-        btnPickEnd.setEnabled(false);
-        btnPickEnd.setAlpha(0.5f);
-
-        btnSave.setOnClickListener(v -> saveSlot());
-
-        if (btnBack != null) {
-            btnBack.setOnClickListener(v -> navigateBackToTutorHome());
+        // Populate AM/PM dropdown
+        if (spStartAmPm != null) {
+            ArrayAdapter<String> ampmAdapter = new ArrayAdapter<>(
+                    this,
+                    android.R.layout.simple_spinner_item,
+                    new String[]{"AM", "PM"}
+            );
+            ampmAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spStartAmPm.setAdapter(ampmAdapter);
         }
+
+        btnPickDate.setOnClickListener(v -> showDatePicker());
+        btnSave.setOnClickListener(v -> saveSlot());
     }
 
     private void showDatePicker() {
@@ -92,8 +91,8 @@ public class CreateSlotActivity extends AppCompatActivity {
     }
 
     /**
-     * Reads the typed time (HH:MM) + AM/PM from the UI, validates, and
-     * populates startMin/endMin + tvStart/tvEnd. Returns true if valid.
+     * Reads the typed time (HH:MM, 12-hour) + AM/PM from the UI, validates, and
+     * populates startMin/endMin. Returns true if valid.
      */
     private boolean computeStartAndEndFromInput() {
         String dateStr = tvDate.getText().toString().trim();
@@ -106,16 +105,22 @@ public class CreateSlotActivity extends AppCompatActivity {
 
         String[] parts = timeStr.split(":");
         if (parts.length != 2) {
-            toast("Use HH:MM format (e.g., 11:30)");
+            toast("Use HH:MM format (e.g., 2:00)");
             return false;
         }
 
-        int hour, minute;
+        int hour12, minute;
         try {
-            hour = Integer.parseInt(parts[0]);
+            hour12 = Integer.parseInt(parts[0]);
             minute = Integer.parseInt(parts[1]);
         } catch (NumberFormatException e) {
-            toast("Invalid time. Use numbers like 09:00 or 11:30.");
+            toast("Invalid time. Use numbers like 2:00 or 11:30.");
+            return false;
+        }
+
+        // 12-hour validation
+        if (hour12 < 1 || hour12 > 12) {
+            toast("Hour must be between 1 and 12");
             return false;
         }
 
@@ -124,32 +129,22 @@ public class CreateSlotActivity extends AppCompatActivity {
             return false;
         }
 
-        // Interpret hour with AM/PM dropdown (12-hour style). If user types 12:xx,
-        // AM → 00:xx, PM → 12:xx. For 1–11, PM adds +12h.
-        String ampm = spStartAmPm.getSelectedItem() != null
-                ? spStartAmPm.getSelectedItem().toString()
-                : "AM";
-
-        if ("PM".equalsIgnoreCase(ampm) && hour < 12) {
-            hour += 12;
-        } else if ("AM".equalsIgnoreCase(ampm) && hour == 12) {
-            hour = 0;
+        // Read AM/PM from spinner (default AM)
+        String ampm = "AM";
+        if (spStartAmPm != null && spStartAmPm.getSelectedItem() != null) {
+            ampm = spStartAmPm.getSelectedItem().toString();
         }
 
-        if (hour < 0 || hour > 23) {
-            toast("Hour must be between 1 and 12");
-            return false;
+        // Convert 12-hour -> 24-hour
+        int hour24 = hour12;
+        if ("PM".equalsIgnoreCase(ampm) && hour12 < 12) {
+            hour24 = hour12 + 12;        // 1–11 PM → 13–23
+        } else if ("AM".equalsIgnoreCase(ampm) && hour12 == 12) {
+            hour24 = 0;                  // 12 AM → 00
         }
 
-        startMin = hour * 60 + minute;
+        startMin = hour24 * 60 + minute;
         endMin   = startMin + 30;
-
-        int eh = endMin / 60;
-        int em = endMin % 60;
-
-        // Echo chosen times in 24-hour HH:MM format
-        tvStart.setText(String.format(Locale.US, "%02d:%02d", hour, minute));
-        tvEnd.setText(String.format(Locale.US, "%02d:%02d", eh, em));
 
         return true;
     }
@@ -179,7 +174,9 @@ public class CreateSlotActivity extends AppCompatActivity {
         String tutorId = AuthIdProvider.requireCurrentUserId();
         String dateStr = tvDate.getText().toString().trim(); // yyyy-MM-dd
         String startStr = String.format(Locale.US, "%02d:%02d", startMin / 60, startMin % 60);
-        boolean requiresApproval = !swAutoApprove.isChecked(); // switch text = “auto approve”
+
+        // Switch label is "Manual approval" → checked = manual approval required
+        boolean requiresApproval = swAutoApprove.isChecked();
 
         // repository computes end = start + 30 and writes it
         repo.createAvailabilitySlot(
