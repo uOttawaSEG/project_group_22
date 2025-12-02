@@ -42,4 +42,10 @@
         <item>ITI 1100</item>
     </string-array>
 
+    <string-array name="am_pm_array">
+        <item>AM</item>
+        <item>PM</item>
+    </string-array>
+
+
 </resources>

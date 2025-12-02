@@ -11,7 +11,7 @@
         android:id="@+id/scroll"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:fillViewport="true"
+        android:fillViewport="false"
         android:clipToPadding="false"
         android:padding="20dp"
         app:layout_constraintTop_toTopOf="parent"
@@ -115,34 +115,56 @@
                         android:textColor="#111827" />
                 </LinearLayout>
 
-                <!-- Time pickers -->
+                <!-- Time inputs: typed HH:MM + AM/PM dropdown; end time is auto-computed -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:orientation="horizontal">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPickStart"
-                        style="?attr/materialButtonOutlinedStyle"
+                    <!-- Start time container -->
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="48dp"
                         android:layout_weight="1"
-                        android:text="Pick start (:00 / :30)"
-                        android:textAllCaps="false"
-                        android:textColor="#111827"
-                        app:cornerRadius="26dp"
-                        app:strokeColor="#E5E7EB"
-                        app:strokeWidth="1dp"
-                        app:icon="@drawable/ic_outline_access_time_24"
-                        app:iconPadding="8dp" />
+                        android:layout_marginEnd="6dp"
+                        android:background="#F9FAFB"
+                        android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
+                        android:gravity="center_vertical">
+
+                        <EditText
+                            android:id="@+id/etStartTime"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="2"
+                            android:layout_marginEnd="8dp"
+                            android:hint="HH:MM"
+                            android:inputType="time"
+                            android:maxLength="5"
+                            android:singleLine="true"
+                            android:textColor="#111827"
+                            android:textSize="14sp" />
+
+                        <androidx.appcompat.widget.AppCompatSpinner
+                            android:id="@+id/spStartAmPm"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:entries="@array/am_pm_array"
+                            android:spinnerMode="dropdown" />
+                    </LinearLayout>
 
                     <Space
                         android:layout_width="12dp"
                         android:layout_height="0dp" />
 
+                    <!-- End time display (auto +30min from start) -->
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPickEnd"
+                        android:id="@+id/btnEndDisplay"
                         style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="0dp"
                         android:layout_height="48dp"
@@ -162,7 +184,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="10dp"
                     android:orientation="horizontal">
 
                     <TextView
