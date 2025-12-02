@@ -164,7 +164,7 @@
 
                     <!-- End time display (auto +30min from start) -->
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnEndDisplay"
+                        android:id="@+id/btnPickEnd"
                         style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="0dp"
                         android:layout_height="48dp"

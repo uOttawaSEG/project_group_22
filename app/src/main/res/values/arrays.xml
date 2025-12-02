@@ -2,11 +2,12 @@
 <resources>
 
     <string-array name="degrees_array">
-        <item>Bachelor’s</item>
-        <item>Master’s</item>
-        <item>PhD</item>
-        <item>Diploma</item>
-        <item>Certificate</item>
+        <item>Bachelor of Engineering (Software)</item>
+        <item>Bachelor of Engineering (Mechanical)</item>
+        <item>Bachelor of Science (Computer Science)</item>
+        <item>Bachelor of Commerce</item>
+        <item>Master of Engineering</item>
+        <item>Master of Science</item>
     </string-array>
 
     <!-- SHARED course list (tutors + students) -->

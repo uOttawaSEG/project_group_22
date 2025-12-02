@@ -301,50 +301,61 @@ public class StudentSessionsFragment extends Fragment {
                         refresh();
                         if (host != null) host.onSessionUpdated();
                     })
-                    .addOnFailureListener(e -> toast("Failed to cancel"));
-        }).addOnFailureListener(e -> toast("Failed to cancel"));
+                    .addOnFailureListener(e ->
+                            toast("Failed to cancel: " + (e.getMessage() == null ? "" : e.getMessage())));
+        }).addOnFailureListener(e ->
+                toast("Failed to cancel: " + (e.getMessage() == null ? "" : e.getMessage())));
     }
 
+    /**
+     * Cancel an APPROVED session if and only if it is more than 24 hours in the future.
+     * Path: users/{tutorId}/sessions/{sessionId}
+     */
     private void cancelApprovedSession(StudentSessionItem item) {
         DocumentReference sessionRef = db.collection("users").document(item.tutorId)
                 .collection("sessions").document(item.id);
 
-        sessionRef.get().addOnSuccessListener(doc -> {
-            if (!doc.exists()) {
-                toast("Session not found");
-                return;
-            }
-
-            String date = nz(doc.getString("date"));
-            String startTime = nz(doc.getString("startTime"));
-            long sessionStart = toMillisSafe(date, startTime);
-            long now = System.currentTimeMillis();
-            long hoursUntilStart = (sessionStart - now) / (1000 * 60 * 60);
-
-            if (hoursUntilStart < 24) {
-                toast("Cannot cancel sessions starting within 24 hours");
-                return;
-            }
-
-            DocumentReference slotRef = db.collection("users").document(item.tutorId)
-                    .collection("availabilitySlots").document(item.slotId);
-
-            db.runTransaction(trx -> {
-                trx.update(sessionRef, "status", "CANCELLED");
-                if (item.slotId != null && !item.slotId.isEmpty()) {
-                    DocumentSnapshot slotSnap = trx.get(slotRef);
-                    if (slotSnap.exists()) {
-                        trx.update(slotRef, "booked", false);
+        sessionRef.get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        toast("Session not found");
+                        return;
                     }
-                }
-                return null;
-            }).addOnSuccessListener(v -> {
-                toast("Session cancelled");
-                refresh();
-                if (host != null) host.onSessionUpdated();
-            }).addOnFailureListener(e -> toast("Failed to cancel"));
 
-        }).addOnFailureListener(e -> toast("Failed to cancel"));
+                    String date = nz(doc.getString("date"));
+                    String startTime = nz(doc.getString("startTime"));
+                    long sessionStart = toMillisSafe(date, startTime);
+                    long now = System.currentTimeMillis();
+                    long hoursUntilStart = (sessionStart - now) / (1000 * 60 * 60);
+
+                    // 24-hour rule
+                    if (hoursUntilStart < 24) {
+                        toast("Cannot cancel sessions starting within 24 hours");
+                        return;
+                    }
+
+                    // 1) Mark the session as CANCELLED
+                    sessionRef.update("status", "CANCELLED")
+                            .addOnSuccessListener(v -> {
+                                // 2) Free the slot if we know which one it is
+                                if (item.slotId != null && !item.slotId.isEmpty()) {
+                                    DocumentReference slotRef = db.collection("users")
+                                            .document(item.tutorId)
+                                            .collection("availabilitySlots")
+                                            .document(item.slotId);
+
+                                    slotRef.update("booked", false);
+                                }
+
+                                toast("Session cancelled");
+                                refresh();
+                                if (host != null) host.onSessionUpdated();
+                            })
+                            .addOnFailureListener(e ->
+                                    toast("Failed to cancel: " + (e.getMessage() == null ? "" : e.getMessage())));
+                })
+                .addOnFailureListener(e ->
+                        toast("Failed to cancel: " + (e.getMessage() == null ? "" : e.getMessage())));
     }
 
     // ========== RATING ==========

@@ -146,7 +146,7 @@ public class AdminInboxActivity extends AppCompatActivity implements PendingExpa
         if (show) empty.setVisibility(View.GONE);
     }
 
-    // <-- added helper
+    // <-- helper to open a specific inbox tab
     private void openInbox(String status) {
         Intent i = new Intent(this, AdminInboxActivity.class);
         i.putExtra("filter_status", status);   // "PENDING" | "APPROVED" | "REJECTED"
@@ -170,11 +170,8 @@ public class AdminInboxActivity extends AppCompatActivity implements PendingExpa
                     .setAction("View approved", v -> openInbox("APPROVED"))
                     .show();
 
-            if (statusToShow == RequestStatus.PENDING) {
-                openInbox("APPROVED");
-            } else {
-                loadList();
-            }
+            // ✅ Always go to APPROVED after approving
+            openInbox("APPROVED");
         }).addOnFailureListener(e -> {
             showLoading(false);
             Snackbar.make(findViewById(android.R.id.content),
@@ -207,11 +204,8 @@ public class AdminInboxActivity extends AppCompatActivity implements PendingExpa
                                 .setAction("View rejected", v -> openInbox("REJECTED"))
                                 .show();
 
-                        if (statusToShow == RequestStatus.PENDING) {
-                            openInbox("REJECTED");
-                        } else {
-                            loadList();
-                        }
+                        // ✅ Always go to REJECTED after rejecting
+                        openInbox("REJECTED");
                     }).addOnFailureListener(e -> {
                         showLoading(false);
                         Snackbar.make(findViewById(android.R.id.content),

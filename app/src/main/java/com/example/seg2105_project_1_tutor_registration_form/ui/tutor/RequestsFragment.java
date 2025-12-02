@@ -27,11 +27,25 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-/*
-/* * RequestsFragment * ----------------
- * The goal is to provide the tutor with a screen that displays pending session request items and allows them to *approve or reject each one.
- * How it operates: *   • Arguments: use newInstance(tutorId) to pass the tutor's UID. To prevent the fragment from crashing if the system recreates it, we protect against * null/missing args.   • TutorRepository (FirestoreTutorRepository) is used as the data source to: *       * - getStudent(studentId) → enrich rows with the student's full name (if missing) - getPendingRequests(tutorId) → initial list       - actions per row - approveRequest / rejectRequest   • UI states: displays a RecyclerView once data is available, an empty view when there are no * requests, and a progress spinner during loading.   • Resilience includes defensive binding, graceful error toasts, and safe null/empty checks (safe(String)).       In order to avoid double tapping, buttons are turned off during approve/reject.       If it works, we ideally take the item off the list and let the host know.
 
+/*
+ * RequestsFragment
+ * ----------------
+ * Screen for tutors to see pending session requests and approve/reject them.
+ *
+ * Data:
+ *   • newInstance(tutorId) to pass tutor UID.
+ *   • Uses TutorRepository (FirestoreTutorRepository) to:
+ *       - getPendingRequests(tutorId)
+ *       - getStudent(studentId) to enrich names
+ *       - approveRequest / rejectRequest
+ *
+ * UI:
+ *   • Shows RecyclerView of requests, empty view when none, and progress while loading.
+ *   • Each row shows:
+ *       - When line (grade/subject + slot date/time if available)
+ *       - Student name
+ *       - Approve / Reject buttons
  */
 public class RequestsFragment extends Fragment {
 
@@ -183,25 +197,76 @@ public class RequestsFragment extends Fragment {
 
     private static String safe(String s){ return s==null ? "" : s; }
 
+    /**
+     * Try to get slot date & start/end time from the SessionRequest so we can show:
+     *   Grade • Subject • 2025-11-21 • 11:30–12:00
+     *
+     * Because I don't know your exact model field names, this uses reflection to
+     * check a few common getters (getDate, getSlotDate, getStartTime, getEndTime...).
+     * If nothing is found, it falls back to the original "Requested <timestamp>" logic,
+     * and finally "Request".
+     */
     private static String formatWhenLine(SessionRequest r) {
+        // 1) Build meta from grade + subject
         String subject = safe(r.getSubject());
         String grade = safe(r.getGrade());
 
         String fromMeta = "";
         if (!grade.isEmpty()) fromMeta = grade;
-        if (!subject.isEmpty()) fromMeta = fromMeta.isEmpty() ? subject : (fromMeta + " • " + subject);
+        if (!subject.isEmpty()) {
+            fromMeta = fromMeta.isEmpty() ? subject : (fromMeta + " • " + subject);
+        }
 
+        // 2) Try to read explicit slot date + times from the model (if present)
+        String date = safe(callStringGetter(r, "getDate"));
+        if (date.isEmpty()) date = safe(callStringGetter(r, "getSlotDate"));
+
+        String start = safe(callStringGetter(r, "getStartTime"));
+        if (start.isEmpty()) start = safe(callStringGetter(r, "getStartLabel"));
+        if (start.isEmpty()) start = safe(callStringGetter(r, "getStartTimeLabel"));
+
+        String end = safe(callStringGetter(r, "getEndTime"));
+        if (end.isEmpty()) end = safe(callStringGetter(r, "getEndLabel"));
+        if (end.isEmpty()) end = safe(callStringGetter(r, "getEndTimeLabel"));
+
+        if (!date.isEmpty() && !start.isEmpty()) {
+            // We have slot date + start time – this is what we really want to show
+            String range = (end.isEmpty()) ? start : (start + "–" + end);
+            if (fromMeta.isEmpty()) {
+                return date + " • " + range;
+            } else {
+                return fromMeta + " • " + date + " • " + range;
+            }
+        }
+
+        // 3) Fallback: use the original "Requested <timestamp>" logic
         try {
             Timestamp ts = r.getRequestedAtMillis();
             if (ts != null) {
                 Date d = ts.toDate();
                 String when = DateFormat.getDateTimeInstance(
-                        DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault()).format(d);
+                        DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault()
+                ).format(d);
                 return fromMeta.isEmpty() ? ("Requested " + when) : (fromMeta + " • " + when);
             }
         } catch (Throwable ignored) { }
 
+        // 4) Last resort: just show meta or "Request"
         return fromMeta.isEmpty() ? "Request" : fromMeta;
+    }
+
+    /**
+     * Small helper: call a no-arg String getter on SessionRequest by name, but
+     * swallow any reflection errors and return "" if not found.
+     */
+    private static String callStringGetter(SessionRequest r, String methodName) {
+        try {
+            java.lang.reflect.Method m = r.getClass().getMethod(methodName);
+            Object val = m.invoke(r);
+            return val == null ? "" : val.toString();
+        } catch (Throwable t) {
+            return "";
+        }
     }
 
     /* ---------- adapter ---------- */
@@ -282,10 +347,13 @@ public class RequestsFragment extends Fragment {
             reject = v.findViewById(R.id.btnReject);
         }
     }
+
     /*
-     *   • Lifecycle: *       Parent Activities can implement Host callback (optional) to notify Host after * an item is handled (e.g., to refresh badges/tabs).
+     *   • Lifecycle:
+     *       Parent Activities can implement Host callback (optional) to notify Host after
+     *       an item is handled (e.g., to refresh badges/tabs).
      *       To maintain the list's freshness, onCreateView and onResume call load().
-     * Notable assistants: *   The function formatWhenLine(r) creates a condensed "Grade • Subject • Requested <time>" line.   • getBindingAdapterPositionSafe(...): Prevents NO_POSITION errors when updating quickly.
-     * Expectations for layout: *   • @id/progress, @id/empty (TextView ok), and @id/list are contained in fragment_simple_list.   • @id/tvWhen, @id/tvStudent, @id/btnApprove, and @id/btnReject are contained in item_request_row.
+     *   • formatWhenLine(r) now prefers slot date/time fields if available, and only
+     *     falls back to "Requested <time>" or "Request" as a last resort.
      */
 }

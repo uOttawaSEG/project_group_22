@@ -147,12 +147,11 @@ public class PendingExpandableAdapter extends RecyclerView.Adapter<PendingExpand
             // Expand/collapse
             details.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
 
-            // Disable actions if already decided
-            boolean pending = "PENDING".equals(statusUpper);
-            btnApprove.setEnabled(pending);
-            btnReject.setEnabled(pending);
-            btnApprove.setAlpha(pending ? 1f : 0.5f);
-            btnReject.setAlpha(pending ? 1f : 0.5f);
+            // ✅ Always keep actions enabled so admin can flip Approved ↔ Rejected
+            btnApprove.setEnabled(true);
+            btnReject.setEnabled(true);
+            btnApprove.setAlpha(1f);
+            btnReject.setAlpha(1f);
         }
 
         private static String safe(String s) { return s == null ? "" : s; }
